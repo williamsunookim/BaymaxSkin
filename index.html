@@ -417,6 +417,15 @@
           <span class="status-dot"></span>
           <span id="status-text">Initializing...</span>
         </div>
+        <div id="load-progress" style="display:none; margin-bottom:0.75rem;">
+          <div style="background:#ededed; border-radius:4px; height:6px; overflow:hidden;">
+            <div id="load-bar" style="height:100%; width:0%; background:#3273dc; border-radius:4px; transition:width 0.2s;"></div>
+          </div>
+          <div id="load-detail" style="font-size:0.68rem; color:#aaa; margin-top:3px; line-height:1.4;"></div>
+        </div>
+        <p style="font-size:0.68rem; color:#aaaaaa; margin-bottom:0.75rem; line-height:1.5;">
+          Initial load may take <strong>1–2 minutes</strong> — the AI model (~30 MB) and 3D meshes are fetched from this server.
+        </p>
 
         <div class="joint-group">
           <div class="joint-group-title" style="color:#4488ff;">Left Arm</div>
@@ -444,7 +453,6 @@
         </div>
 
         <div class="demo-buttons">
-          <button class="demo-btn" id="animate-btn">▶ Animate</button>
           <button class="demo-btn" id="reset-btn">↺ Reset</button>
         </div>
 
@@ -488,7 +496,7 @@
     let scene, camera, renderer, controls, bodyGeo, leftGeo, rightGeo;
     let bodyMat, leftMat, rightMat;
     let session = null, modelLoaded = false;
-    let animating = false, animTime = 0, animInterval = null, busy = false;
+    let busy = false;
     let jointObjects = {}; // urdf joint name -> { frame: Object3D, axis: Vector3 }
 
     /* ---- THREE.JS ---- */
@@ -613,12 +621,26 @@
           jointObjects[jd.name] = { frame, axis: new THREE.Vector3(...jd.axis) };
       }
 
-      // Load STL meshes
+      // Load STL meshes with progress tracking
       const sharedMat = new THREE.MeshLambertMaterial({ color: 0xc8d0dc });
       const loader = new THREE.STLLoader();
-      for (const [linkName, lv] of Object.entries(linkVisuals)) {
+      const stlEntries = Object.entries(linkVisuals).filter(([n]) => linkFrames[n]);
+      const stlTotal = stlEntries.length;
+      let stlLoaded = 0;
+      if (stlTotal === 0) { hideProgress(); }
+
+      function updateStlProgress() {
+        stlLoaded++;
+        const pct = Math.round(stlLoaded / stlTotal * 100);
+        setProgress(pct, `Loading robot mesh... (${stlLoaded}/${stlTotal})`);
+        if (stlLoaded >= stlTotal) {
+          hideProgress();
+          setStatus('loading', 'Loading AI model...');
+        }
+      }
+
+      for (const [linkName, lv] of stlEntries) {
         const frame = linkFrames[linkName];
-        if (!frame) continue;
         loader.load(lv.url, (geo) => {
           const mesh = new THREE.Mesh(geo, sharedMat);
           mesh.scale.set(...lv.scale);
@@ -626,7 +648,8 @@
           if (lv.rpy[0] || lv.rpy[1] || lv.rpy[2])
             mesh.rotation.set(lv.rpy[0], lv.rpy[1], lv.rpy[2]);
           frame.add(mesh);
-        }, undefined, (e) => console.warn('[Demo] STL load failed:', lv.url, e));
+          updateStlProgress();
+        }, undefined, (e) => { console.warn('[Demo] STL load failed:', lv.url, e); updateStlProgress(); });
       }
 
       updateRobotJoints();
@@ -647,25 +670,61 @@
         const text = await resp.text();
         const xml  = new DOMParser().parseFromString(text, 'text/xml');
         buildRobot(xml);
+        // STL loading is async; wait for all meshes via a polling promise
+        return new Promise(resolve => {
+          const check = setInterval(() => {
+            // stlLoaded/stlTotal are set inside buildRobot scope — resolve when STL progress bar hides
+            const p = document.getElementById('load-progress');
+            if (!p || p.style.display === 'none') { clearInterval(check); resolve(); }
+          }, 200);
+          // Fallback: resolve after 30s
+          setTimeout(() => { clearInterval(check); resolve(); }, 30000);
+        });
       } catch(e) {
         console.warn('[Demo] URDF load failed:', e);
+        hideProgress();
       }
     }
 
     /* ---- ONNX ---- */
     async function tryLoad() {
-      setStatus('loading', 'Loading model...');
+      setStatus('loading', 'Loading AI model...');
       try {
         if (typeof ort === 'undefined') throw new Error('no ort');
         ort.env.wasm.numThreads = 1;
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/';
+
+        // Fetch with download progress
         const resp = await fetch('static/models/series_model_best_quant.onnx');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const buf = await resp.arrayBuffer();
-        session = await ort.InferenceSession.create(buf);
+        const contentLength = resp.headers.get('Content-Length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let received = 0;
+        showProgress();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          if (total > 0) {
+            const pct = Math.round(received / total * 100);
+            setProgress(pct, `Downloading AI model... ${pct}% (${(received/1048576).toFixed(1)} / ${(total/1048576).toFixed(1)} MB)`);
+          } else {
+            setProgress(50, `Downloading AI model... ${(received/1048576).toFixed(1)} MB received`);
+          }
+        }
+        hideProgress();
+        setStatus('loading', 'Initializing AI model...');
+        const buf = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) { buf.set(chunk, offset); offset += chunk.length; }
+        session = await ort.InferenceSession.create(buf.buffer);
         modelLoaded = true;
-        setStatus('ready', 'Model loaded ✓');
+        setStatus('ready', 'Model ready ✓');
       } catch (e) {
+        hideProgress();
         console.error('[Demo] Model load failed:', e);
         const isFileProtocol = location.protocol === 'file:';
         setStatus('demo', isFileProtocol
@@ -696,49 +755,36 @@
       } finally { busy = false; }
     }
 
-    /* ---- ANIMATION ---- */
-    const AMPS  = [0.7,0.4,0.7,0.3,1.0,0.4,0.3,1.0];
-    const FREQS = [1.0,1.3,0.8,1.5,1.2,1.1,1.4,0.9];
-    const PHS   = [0.0,0.5,1.0,1.5,0.3,0.8,1.2,0.6];
-
-    function toggleAnim() {
-      animating = !animating;
-      const btn = document.getElementById('animate-btn');
-      if (animating) {
-        btn.textContent = '⏸ Pause'; btn.classList.add('active');
-        animInterval = setInterval(() => {
-          animTime += 0.035;
-          JOINTS.forEach(({id, min, max}) => {
-            const center = (id===4||id===7) ? max*0.4 : 0;
-            jv[id] = Math.max(min, Math.min(max, center + AMPS[id]*(max-min)*0.3*Math.sin(animTime*FREQS[id]+PHS[id])));
-            const sl = document.getElementById(`slider-${id}`), vl = document.getElementById(`val-${id}`);
-            if (sl) sl.value = jv[id];
-            if (vl) vl.textContent = Math.round(jv[id]*180/Math.PI)+'°';
-          });
-          updateRobotJoints();
-          update();
-        }, 50);
-      } else {
-        btn.textContent = '▶ Animate'; btn.classList.remove('active');
-        clearInterval(animInterval);
-      }
-    }
-
     const DEFAULT_JV = [0, -0.35, 0, 0, 0, 0.35, 0, 0]; // matches node.default()
     function reset() {
-      if (animating) toggleAnim();
       JOINTS.forEach(({id}) => {
         jv[id] = DEFAULT_JV[id];
         const sl = document.getElementById(`slider-${id}`), vl = document.getElementById(`val-${id}`);
         if (sl) sl.value = jv[id];
         if (vl) vl.textContent = Math.round(jv[id] * 180 / Math.PI) + '°';
       });
+      updateRobotJoints();
       update();
     }
 
     function setStatus(cls, txt) {
       const el=document.getElementById('model-status'), tx=document.getElementById('status-text');
       if (el) el.className=`model-status ${cls}`; if (tx) tx.textContent=txt;
+    }
+    function showProgress() {
+      const p = document.getElementById('load-progress');
+      if (p) p.style.display = 'block';
+    }
+    function hideProgress() {
+      const p = document.getElementById('load-progress');
+      if (p) p.style.display = 'none';
+    }
+    function setProgress(pct, detail) {
+      showProgress();
+      const bar = document.getElementById('load-bar');
+      const det = document.getElementById('load-detail');
+      if (bar) bar.style.width = pct + '%';
+      if (det) det.textContent = detail;
     }
 
     /* ---- SCRIPT LOADER ---- */
@@ -769,10 +815,9 @@
               jv[id]=parseFloat(this.value);
               if (vl) vl.textContent=Math.round(jv[id]*180/Math.PI)+'°';
               updateRobotJoints();
-              if (!animating) update();
+              update();
             });
           });
-          document.getElementById('animate-btn').addEventListener('click', toggleAnim);
           document.getElementById('reset-btn').addEventListener('click', reset);
 
           const psSl = document.getElementById('point-size-slider');
@@ -783,15 +828,14 @@
             if (bodyMat) { bodyMat.size = s; leftMat.size = s; rightMat.size = s; }
           });
 
-          // Load URDF skeleton
-          loadAndBuildRobot();
-
-          // Show demo immediately while ONNX loads in background
-          setStatus('demo', 'Demo mode');
-          update();
-
-          loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js', function () {
-            tryLoad(); // upgrade to real model if available
+          // Load URDF skeleton + STL meshes, then load ONNX model
+          setStatus('loading', 'Loading robot mesh...');
+          setProgress(0, 'Fetching URDF...');
+          showProgress();
+          loadAndBuildRobot().then(() => {
+            loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js', function () {
+              tryLoad();
+            });
           });
         });
         });
