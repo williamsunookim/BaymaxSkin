@@ -593,7 +593,7 @@
         const scaleS = meshEl.getAttribute('scale');
         const scale  = scaleS ? scaleS.split(' ').map(Number) : [1, 1, 1];
         // package://my_robot_bringup/description/meshes/skeleton_v3/foo.stl → static/meshes/foo.stl
-        const filename = raw.replace(/^package:\/\/[^/]+(?:\/[^/]+)*\/meshes\/[^/]+\//, '');
+        const filename = raw.replace(/^package:\/\/[^/]+(?:\/[^/]+)*\/meshes\/[^/]+\//, '').replace('.stl', '.glb');
         const url    = 'static/meshes/' + filename;
         const oEl    = l.querySelector('visual origin');
         const xyz    = (oEl?.getAttribute('xyz') || '0 0 0').split(' ').map(Number);
@@ -623,7 +623,7 @@
 
       // Load STL meshes with progress tracking
       const sharedMat = new THREE.MeshLambertMaterial({ color: 0xc8d0dc });
-      const loader = new THREE.STLLoader();
+      const loader = new THREE.GLTFLoader();
       const stlEntries = Object.entries(linkVisuals).filter(([n]) => linkFrames[n]);
       const stlTotal = stlEntries.length;
       let stlLoaded = 0;
@@ -641,15 +641,22 @@
 
       for (const [linkName, lv] of stlEntries) {
         const frame = linkFrames[linkName];
-        loader.load(lv.url, (geo) => {
-          const mesh = new THREE.Mesh(geo, sharedMat);
-          mesh.scale.set(...lv.scale);
-          mesh.position.set(...lv.xyz);
-          if (lv.rpy[0] || lv.rpy[1] || lv.rpy[2])
-            mesh.rotation.set(lv.rpy[0], lv.rpy[1], lv.rpy[2]);
-          frame.add(mesh);
-          updateStlProgress();
-        }, undefined, (e) => { console.warn('[Demo] STL load failed:', lv.url, e); updateStlProgress(); });
+        loader.load(lv.url, (gltf) => {
+        const model = gltf.scene;
+
+        model.scale.set(...lv.scale);
+        model.position.set(...lv.xyz);
+
+        if (lv.rpy[0] || lv.rpy[1] || lv.rpy[2]) {
+            model.rotation.set(lv.rpy[0], lv.rpy[1], lv.rpy[2]);
+        }
+
+        frame.add(model);
+        updateStlProgress();
+        }, undefined, (e) => {
+        console.warn('[Demo] GLB load failed:', lv.url, e);
+        updateStlProgress();
+        });
       }
 
       updateRobotJoints();
@@ -802,7 +809,7 @@
 
       loadScript('https://unpkg.com/three@0.128.0/build/three.min.js', function () {
         loadScript('https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js', function () {
-        loadScript('https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js', function () {
+        loadScript('https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js', function () {
           if (typeof THREE === 'undefined') {
             setStatus('demo', 'Failed to load Three.js'); return;
           }
