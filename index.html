@@ -427,12 +427,12 @@
           Initial load may take <strong>1–2 minutes</strong> — the AI model (~30 MB) and 3D meshes are fetched from this server.
         </p>
 
-        <div class="joint-group">
+        <!-- <div class="joint-group">
           <div class="joint-group-title" style="color:#4488ff;">Left Arm</div>
           <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider lj" id="slider-0" min="-1.57" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-0">0°</span></div>
           <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider lj" id="slider-1" min="-1.57" max="0.00" step="0.01" value="-0.35"><span class="joint-val" id="val-1">-20°</span></div>
           <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider lj" id="slider-3" min="-0.80" max="1.57" step="0.01" value="0"    ><span class="joint-val" id="val-3">0°</span></div>
-          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider lj" id="slider-4" min="-1.57" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-4">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider lj" id="slider-4" min="-0.785" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-4">0°</span></div>
         </div>
 
         <div class="joint-group">
@@ -440,7 +440,22 @@
           <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider rj" id="slider-2" min="0.00"  max="1.57" step="0.01" value="0"   ><span class="joint-val" id="val-2">0°</span></div>
           <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider rj" id="slider-5" min="0.00"  max="1.57" step="0.01" value="0.35"><span class="joint-val" id="val-5">20°</span></div>
           <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider rj" id="slider-6" min="-1.57" max="0.80" step="0.01" value="0"   ><span class="joint-val" id="val-6">0°</span></div>
-          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider rj" id="slider-7" min="0.00"  max="1.57" step="0.01" value="0"   ><span class="joint-val" id="val-7">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider rj" id="slider-7" min="0.00"  max="0.785" step="0.01" value="0"   ><span class="joint-val" id="val-7">0°</span></div>
+        </div> -->
+        <div class="joint-group">
+          <div class="joint-group-title" style="color:#4488ff;">Left Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider lj" id="slider-0" min="-1.04" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-0">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider lj" id="slider-1" min="-1.04" max="0.00" step="0.01" value="-0.35"><span class="joint-val" id="val-1">-20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider lj" id="slider-3" min="-0.80" max="1.04" step="0.01" value="0"    ><span class="joint-val" id="val-3">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider lj" id="slider-4" min="-0.785" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-4">0°</span></div>
+        </div>
+
+        <div class="joint-group">
+          <div class="joint-group-title" style="color:#ff5555;">Right Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider rj" id="slider-2" min="0.00"  max="1.04" step="0.01" value="0"   ><span class="joint-val" id="val-2">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider rj" id="slider-5" min="0.00"  max="1.04" step="0.01" value="0.35"><span class="joint-val" id="val-5">20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider rj" id="slider-6" min="-1.04" max="0.80" step="0.01" value="0"   ><span class="joint-val" id="val-6">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider rj" id="slider-7" min="0.00"  max="0.785" step="0.01" value="0"   ><span class="joint-val" id="val-7">0°</span></div>
         </div>
 
         <div class="joint-group" style="margin-top:0.5rem;">
@@ -485,10 +500,10 @@
       {id:1, min:-1.57, max: 0.00}, // LSR
       {id:2, min: 0.00, max: 1.57}, // RSP
       {id:3, min:-0.80, max: 1.57}, // LSY
-      {id:4, min:-1.57, max: 0.00}, // LE
+      {id:4, min:-0.785, max: 0.00}, // LE
       {id:5, min: 0.00, max: 1.57}, // RSR
       {id:6, min:-1.57, max: 0.80}, // RSY
-      {id:7, min: 0.00, max: 1.57}, // RE
+      {id:7, min: 0.00, max: 0.785}, // RE
     ];
 
     // Default pose: LSR=-0.35, RSR=0.35 (matches node.default())

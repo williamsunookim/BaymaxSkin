@@ -119,7 +119,7 @@
     <child link="right_elbow"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 -0.2971"/>
     <axis xyz="0 -1 0"/>
-    <limit effort="100" lower="0.0" upper="1.57" velocity="10"/>
+    <limit effort="100" lower="0.0" upper="0.785" velocity="10"/>
   </joint>
   <link name="right_elbow">
     <visual>
@@ -211,7 +211,7 @@
     <child link="left_elbow"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 -0.2971"/>
     <axis xyz="0 1 0"/>
-    <limit effort="100" lower="-1.57" upper="0.0" velocity="10"/>
+    <limit effort="100" lower="-0.785" upper="0.0" velocity="10"/>
   </joint>
   <link name="left_elbow">
     <visual>
