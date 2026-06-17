@@ -122,6 +122,26 @@ body {
     line-height: 1.1 !important;
 }
 
+.acceptance-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0f766e;
+  background: linear-gradient(135deg, #ecfdf5, #ccfbf1);
+  border: 1px solid #99f6e4;
+  border-left: 4px solid #0f766e;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 1.5rem;
+  padding: 0.7rem 1rem;
+}
+
+.acceptance-banner .icon {
+  color: #d97706;
+}
+
 .publication-banner {
   max-height: 70vh;
   border-radius: var(--border-radius-lg);
