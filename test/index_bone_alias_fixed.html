@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interactive Baymax Skin</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background: #f5f5f5;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    canvas:active { cursor: grabbing; }
+
+    html.view-locked canvas,
+    html.view-locked canvas:active {
+      cursor: crosshair;
+    }
+
+    #view-lock {
+      position: fixed;
+      z-index: 4;
+      top: 10px;
+      right: 12px;
+      padding: 5px 9px;
+      border: 1px solid rgba(0, 0, 0, 0.13);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #555;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      font: 600 11px/1.2 Inter, system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    #view-lock:hover {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.25);
+    }
+
+    #view-lock[aria-pressed="true"] {
+      border-color: #3273dc;
+      background: #eef5ff;
+      color: #245ca6;
+    }
+
+    #view-lock:focus-visible {
+      outline: 2px solid #3273dc;
+      outline-offset: 2px;
+    }
+
+    #status {
+      position: fixed;
+      z-index: 2;
+      top: 44px;
+      left: 12px;
+      max-width: calc(100% - 24px);
+      padding: 5px 8px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #777;
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    #status.error { color: #b42318; }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <button
+    id="view-lock"
+    type="button"
+    aria-pressed="false"
+    title="Lock the camera to drag the skin contact"
+  >
+    View lock: Off
+  </button>
+  <div id="status" role="status" aria-live="polite">Loading skin…</div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/+esm';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js/+esm';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js/+esm';
+
+    const MODEL_URL = './Baymax_RealSize_Opaque_test5.glb';
+    const PARENT_ORIGIN = location.origin === 'null' ? '*' : location.origin;
+    const CLICK_RADIUS_WORLD = 0.13;
+    const CLICK_DEPTH_WORLD = 0.18;
+    const CLOUD_POSITION = new THREE.Vector3(-0.019881, -0.860432, -0.001793);
+    const CLOUD_SCALE = new THREE.Vector3(1.494240, 2.091364, 1.444681);
+    const HIGHLIGHT_POINT_COUNTS = { body: 12, left: 20, right: 20 };
+    const PICK_RADIUS_MIN_PX = 12;
+    const PICK_RADIUS_MAX_PX = 24;
+    const PICK_STEP_PX = 6;
+    const BODY_PICK_RADIUS_PX = 8;
+    const FRONT_SURFACE_SCREEN_BAND_PX = 5;
+    const OCCLUSION_EPSILON_WORLD = 0.025;
+    const PICK_OFFSETS_PX = createCircularPickOffsets(
+      PICK_RADIUS_MAX_PX,
+      PICK_STEP_PX
+    );
+
+    // index.html order: LSP, LSR, RSP, LSY, LE, RSR, RSY, RE
+    const JOINT_LIMITS = [
+      [-1.04, 0],
+      [-1.04, 0],
+      [0, 1.04],
+      [-0.80, 1.04],
+      [-0.785, 0],
+      [0, 1.04],
+      [-1.04, 0.80],
+      [0, 0.785]
+    ];
+
+    const params = {
+      leftShoulderPitch: 0,
+      leftShoulderRoll: -0.35,
+      rightShoulderPitch: 0,
+      leftShoulderYaw: 0,
+      leftElbow: 0,
+      rightShoulderRoll: 0.35,
+      rightShoulderYaw: 0,
+      rightElbow: 0
+    };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf5f5f5);
+
+    const camera = new THREE.PerspectiveCamera(
+      42,
+      innerWidth / Math.max(innerHeight, 1),
+      0.01,
+      100
+    );
+    camera.position.set(4.2, 2.8, 5.8);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.target.set(0, 1.25, 0);
+    controls.minDistance = 2;
+    controls.maxDistance = 12;
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa3b2, 2.3));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3);
+    keyLight.position.set(3.5, 6, 4);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x9eb8ff, 1.4);
+    rimLight.position.set(-3, 2.5, -3);
+    scene.add(rimLight);
+
+    const grid = new THREE.GridHelper(5, 20, 0xd6d6d6, 0xe4e4e4);
+    grid.position.y = -0.002;
+    scene.add(grid);
+
+    const modelRoot = new THREE.Group();
+    scene.add(modelRoot);
+
+    const predictedCloudRoot = new THREE.Group();
+    predictedCloudRoot.rotation.x = -Math.PI / 2;
+    predictedCloudRoot.visible = false;
+    scene.add(predictedCloudRoot);
+
+    const predictedBodyGeo = new THREE.BufferGeometry();
+    const predictedLeftGeo = new THREE.BufferGeometry();
+    const predictedRightGeo = new THREE.BufferGeometry();
+    const predictedBodyMat = new THREE.PointsMaterial({
+      color: 0x777777,
+      size: 0.025,
+      depthTest: false,
+      depthWrite: false
+    });
+    const predictedLeftMat = new THREE.PointsMaterial({
+      color: 0x3273dc,
+      size: 0.025,
+      depthTest: false,
+      depthWrite: false
+    });
+    const predictedRightMat = new THREE.PointsMaterial({
+      color: 0xe53935,
+      size: 0.025,
+      depthTest: false,
+      depthWrite: false
+    });
+    predictedCloudRoot.add(
+      new THREE.Points(predictedBodyGeo, predictedBodyMat),
+      new THREE.Points(predictedLeftGeo, predictedLeftMat),
+      new THREE.Points(predictedRightGeo, predictedRightMat)
+    );
+
+    const LOGICAL_BONES = [
+      'shoulder2.R',
+      'bicep.R',
+      'forearm.R',
+      'shoulder2.L',
+      'bicep.L',
+      'forearm.L'
+    ];
+
+    const bonesByRuntimeName = new Map();
+    const bonesByLogicalName = new Map();
+    const baseBoneQuaternions = new Map();
+    const skinnedMeshes = [];
+    const armMeshes = [];
+    const pressableMeshes = new Set();
+    const status = document.getElementById('status');
+    const viewLockButton = document.getElementById('view-lock');
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    let model = null;
+    let activePress = null;
+    let activePointerId = null;
+    let pendingDragPoint = null;
+    let dragFrameId = null;
+    let viewLocked = false;
+    let predictedCloudDataReady = false;
+    let predictedCloudAligned = false;
+    let vertexCorrespondenceReady = false;
+
+    function createCircularPickOffsets(radius, step) {
+      const offsets = [];
+      const radiusSquared = radius * radius;
+
+      for (let y = -radius; y <= radius; y += step) {
+        for (let x = -radius; x <= radius; x += step) {
+          const distanceSquared = x * x + y * y;
+          if (distanceSquared <= radiusSquared) {
+            offsets.push([x, y, distanceSquared]);
+          }
+        }
+      }
+
+      return offsets.sort((a, b) => a[2] - b[2]);
+    }
+
+    function setStatus(message, isError = false) {
+      status.hidden = false;
+      status.textContent = message;
+      status.classList.toggle('error', isError);
+    }
+
+    function notifyParent(type, extra = {}) {
+      if (window.parent === window) return;
+      window.parent.postMessage({ type, ...extra }, PARENT_ORIGIN);
+    }
+
+    function setViewLocked(locked) {
+      if (activePointerId !== null || activePress) {
+        finishPointerInteraction();
+      }
+
+      viewLocked = Boolean(locked);
+      controls.enabled = !viewLocked;
+      document.documentElement.classList.toggle('view-locked', viewLocked);
+      viewLockButton.setAttribute('aria-pressed', String(viewLocked));
+      viewLockButton.textContent = viewLocked
+        ? 'View lock: On'
+        : 'View lock: Off';
+      notifyParent('baymax-skin-view-lock', { locked: viewLocked });
+    }
+
+    viewLockButton.addEventListener('click', () => {
+      setViewLocked(!viewLocked);
+    });
+
+    function resolveBone(logicalName) {
+      const candidates = [
+        logicalName,
+        logicalName.replaceAll('.', ''),
+        logicalName.replaceAll('.', '_'),
+        logicalName.replace(/[\[\]\.:/]/g, ''),
+        logicalName.replace(/[\[\]\.:/]/g, '_')
+      ];
+
+      for (const candidate of candidates) {
+        const found = bonesByRuntimeName.get(candidate);
+        if (found) return found;
+      }
+
+      const normalizedTarget = logicalName
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .toLowerCase();
+
+      for (const [runtimeName, bone] of bonesByRuntimeName) {
+        const normalizedRuntime = runtimeName
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .toLowerCase();
+        if (normalizedRuntime === normalizedTarget) return bone;
+      }
+
+      return null;
+    }
+
+    function indexActualSkeletonBones() {
+      for (const mesh of skinnedMeshes) {
+        for (const bone of mesh.skeleton.bones) {
+          bonesByRuntimeName.set(bone.name, bone);
+        }
+      }
+
+      for (const logicalName of LOGICAL_BONES) {
+        const bone = resolveBone(logicalName);
+        if (!bone) continue;
+        bonesByLogicalName.set(logicalName, bone);
+        baseBoneQuaternions.set(logicalName, bone.quaternion.clone());
+      }
+    }
+
+    function normalizeModel(root) {
+      root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const targetHeight = 2.8;
+      const scale = targetHeight / Math.max(size.y, 0.0001);
+
+      root.scale.setScalar(scale);
+      root.position.set(
+        -center.x * scale,
+        -box.min.y * scale,
+        -center.z * scale
+      );
+
+      controls.target.set(0, targetHeight * 0.45, 0);
+      controls.update();
+    }
+
+    function cloneOpaqueMaterial(material) {
+      const cloned = material.clone();
+      cloned.transparent = false;
+      cloned.opacity = 1;
+      cloned.depthWrite = true;
+      cloned.side = THREE.FrontSide;
+      cloned.needsUpdate = true;
+      return cloned;
+    }
+
+    function prepareSkinnedMesh(mesh) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map(cloneOpaqueMaterial)
+        : cloneOpaqueMaterial(mesh.material);
+
+      skinnedMeshes.push(mesh);
+      const isArm = /arm/i.test(mesh.name);
+      const isBody = /body/i.test(mesh.name);
+      if (!isArm && !isBody) return;
+
+      if (isArm) {
+        armMeshes.push(mesh);
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        for (const material of materials) {
+          material.side = THREE.DoubleSide;
+          material.needsUpdate = true;
+        }
+      }
+
+      if (!mesh.geometry.getAttribute('normal')) {
+        mesh.geometry.computeVertexNormals();
+      }
+
+      mesh.userData.skinDeformation = {
+        basePositions: new Float32Array(mesh.geometry.getAttribute('position').array),
+        baseNormals: new Float32Array(mesh.geometry.getAttribute('normal').array),
+        activeDent: null
+      };
+      pressableMeshes.add(mesh);
+    }
+
+    function setBonePose(logicalName, x, y, z, order = 'XYZ') {
+      const bone = bonesByLogicalName.get(logicalName);
+      const base = baseBoneQuaternions.get(logicalName);
+      if (!bone || !base) return;
+
+      const delta = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(x, y, z, order)
+      );
+      bone.quaternion.copy(base).multiply(delta);
+      bone.updateMatrix();
+    }
+
+    function applyJointPose() {
+      if (!model) return;
+
+      setBonePose('shoulder2.R', 0, params.rightShoulderPitch, 0);
+      setBonePose(
+        'bicep.R',
+        0,
+        params.rightShoulderYaw,
+        -params.rightShoulderRoll + Math.PI * 0.5,
+        'XZY'
+      );
+      setBonePose('forearm.R', params.rightElbow, 0, 0);
+
+      setBonePose('shoulder2.L', 0, params.leftShoulderPitch, 0);
+      setBonePose(
+        'bicep.L',
+        0,
+        params.leftShoulderYaw,
+        -params.leftShoulderRoll - Math.PI * 0.5,
+        'XZY'
+      );
+      setBonePose('forearm.L', -params.leftElbow, 0, 0);
+
+      model.updateMatrixWorld(true);
+      for (const mesh of skinnedMeshes) {
+        mesh.skeleton.update();
+        // Only the arm bounds change with the controlled bones.
+        if (/arm/i.test(mesh.name)) mesh.boundingSphere = null;
+      }
+    }
+
+    function clampJoint(value, index) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return null;
+      const [min, max] = JOINT_LIMITS[index];
+      return Math.min(max, Math.max(min, numeric));
+    }
+
+    function receiveJointState(values) {
+      if (!Array.isArray(values) || values.length !== JOINT_LIMITS.length) return;
+      const joints = values.map(clampJoint);
+      if (joints.some((value) => value === null)) return;
+
+      params.leftShoulderPitch = joints[0];
+      params.leftShoulderRoll = joints[1];
+      params.rightShoulderPitch = joints[2];
+      params.leftShoulderYaw = joints[3];
+      params.leftElbow = joints[4];
+      params.rightShoulderRoll = joints[5];
+      params.rightShoulderYaw = joints[6];
+      params.rightElbow = joints[7];
+      applyJointPose();
+    }
+
+    function setPredictedCloudGeometry(geometry, values) {
+      if (!values || values.length % 3 !== 0) return false;
+      const source = values instanceof Float32Array
+        ? values
+        : new Float32Array(values);
+      const current = geometry.getAttribute('position');
+
+      if (!current || current.array.length !== source.length) {
+        geometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(new Float32Array(source), 3)
+        );
+      } else {
+        current.array.set(source);
+        current.needsUpdate = true;
+      }
+
+      return true;
+    }
+
+    function getVertexArmRegion(mesh, vertexIndex, worldX) {
+      const skinIndex = mesh.geometry.getAttribute('skinIndex');
+      const skinWeight = mesh.geometry.getAttribute('skinWeight');
+      if (skinIndex && skinWeight && mesh.skeleton) {
+        let leftWeight = 0;
+        let rightWeight = 0;
+
+        for (const getter of ['getX', 'getY', 'getZ', 'getW']) {
+          const weight = skinWeight[getter](vertexIndex);
+          if (weight <= 0) continue;
+
+          const boneIndex = skinIndex[getter](vertexIndex);
+          const boneName = (mesh.skeleton.bones[boneIndex]?.name || '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toLowerCase();
+          if (boneName.endsWith('l')) leftWeight += weight;
+          if (boneName.endsWith('r')) rightWeight += weight;
+        }
+
+        if (leftWeight > rightWeight) return 'left';
+        if (rightWeight > leftWeight) return 'right';
+      }
+
+      return worldX >= 0 ? 'left' : 'right';
+    }
+
+    function getCloudWorldPositions(geometry) {
+      const positions = geometry.getAttribute('position');
+      const worldPositions = new Float32Array(positions.count * 3);
+      const point = new THREE.Vector3();
+
+      for (let i = 0; i < positions.count; i++) {
+        point.fromBufferAttribute(positions, i);
+        point.applyMatrix4(predictedCloudRoot.matrixWorld);
+        const offset = i * 3;
+        worldPositions[offset] = point.x;
+        worldPositions[offset + 1] = point.y;
+        worldPositions[offset + 2] = point.z;
+      }
+
+      return worldPositions;
+    }
+
+    function buildVertexCorrespondenceOnce() {
+      if (
+        vertexCorrespondenceReady ||
+        !predictedCloudAligned ||
+        !model
+      ) return;
+
+      predictedCloudRoot.updateMatrixWorld(true);
+      modelRoot.updateMatrixWorld(true);
+      for (const mesh of skinnedMeshes) mesh.skeleton.update();
+
+      const cloudByRegion = {
+        body: getCloudWorldPositions(predictedBodyGeo),
+        left: getCloudWorldPositions(predictedLeftGeo),
+        right: getCloudWorldPositions(predictedRightGeo)
+      };
+      const regionCodes = { body: 0, left: 1, right: 2 };
+      const vertex = new THREE.Vector3();
+
+      for (const mesh of pressableMeshes) {
+        const positions = mesh.geometry.getAttribute('position');
+        const pointIndexMap = new Int32Array(positions.count);
+        pointIndexMap.fill(-1);
+        const pointRegionMap = new Uint8Array(positions.count);
+
+        for (let vertexIndex = 0; vertexIndex < positions.count; vertexIndex++) {
+          mesh.getVertexPosition(vertexIndex, vertex);
+          vertex.applyMatrix4(mesh.matrixWorld);
+
+          const region = /body/i.test(mesh.name)
+            ? 'body'
+            : getVertexArmRegion(mesh, vertexIndex, vertex.x);
+          const cloud = cloudByRegion[region];
+          let nearestPointIndex = -1;
+          let nearestDistance = Infinity;
+
+          for (let offset = 0; offset < cloud.length; offset += 3) {
+            const dx = vertex.x - cloud[offset];
+            const dy = vertex.y - cloud[offset + 1];
+            const dz = vertex.z - cloud[offset + 2];
+            const distance = dx * dx + dy * dy + dz * dz;
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearestPointIndex = offset / 3;
+            }
+          }
+
+          pointIndexMap[vertexIndex] = nearestPointIndex;
+          pointRegionMap[vertexIndex] = regionCodes[region];
+        }
+
+        mesh.userData.pointCloudIndexMap = pointIndexMap;
+        mesh.userData.pointCloudRegionMap = pointRegionMap;
+      }
+
+      vertexCorrespondenceReady = true;
+      document.documentElement.dataset.vertexCorrespondenceReady = 'true';
+    }
+
+    function alignPredictedCloudOnce() {
+      if (
+        predictedCloudAligned ||
+        !predictedCloudDataReady ||
+        !model
+      ) return;
+
+      predictedCloudRoot.position.copy(CLOUD_POSITION);
+      // The root rotates -90° X, so world Y/Z scale values map to local Z/Y.
+      predictedCloudRoot.scale.set(
+        CLOUD_SCALE.x,
+        CLOUD_SCALE.z,
+        CLOUD_SCALE.y
+      );
+      // Keep the calibrated cloud hidden; it is used only for vertex correspondence.
+      predictedCloudRoot.visible = false;
+      predictedCloudAligned = true;
+      document.documentElement.dataset.predictedCloudVisible = 'false';
+      buildVertexCorrespondenceOnce();
+    }
+
+    function receivePredictedCloud(data) {
+      const bodyReady = setPredictedCloudGeometry(predictedBodyGeo, data.body);
+      const leftReady = setPredictedCloudGeometry(predictedLeftGeo, data.left);
+      const rightReady = setPredictedCloudGeometry(predictedRightGeo, data.right);
+      predictedCloudDataReady = bodyReady && leftReady && rightReady;
+      alignPredictedCloudOnce();
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent) return;
+      if (location.origin !== 'null' && event.origin !== location.origin) return;
+      if (event.data?.type === 'baymax-joints') {
+        receiveJointState(event.data.joints);
+      } else if (event.data?.type === 'baymax-pointcloud') {
+        receivePredictedCloud(event.data);
+      }
+    });
+
+    function applyDents(mesh) {
+      const geometry = mesh.geometry;
+      const positions = geometry.getAttribute('position');
+      const deformation = mesh.userData.skinDeformation;
+      const output = positions.array;
+      const basePositions = deformation.basePositions;
+      const baseNormals = deformation.baseNormals;
+
+      output.set(basePositions);
+      const dent = deformation.activeDent;
+      if (dent) {
+        for (let i = 0; i < dent.vertexIndices.length; i++) {
+          const offset = dent.vertexIndices[i] * 3;
+          const depth = dent.depth * dent.vertexStrengths[i];
+          output[offset] -= baseNormals[offset] * depth;
+          output[offset + 1] -= baseNormals[offset + 1] * depth;
+          output[offset + 2] -= baseNormals[offset + 2] * depth;
+        }
+      }
+
+      positions.needsUpdate = true;
+      if (dent) {
+        geometry.computeVertexNormals();
+      } else {
+        const normals = geometry.getAttribute('normal');
+        normals.array.set(baseNormals);
+        normals.needsUpdate = true;
+      }
+    }
+
+    function getPressedRegion(mesh, face, worldPoint, vertexIndex = null) {
+      if (/body/i.test(mesh.name)) return 'body';
+
+      const skinIndex = mesh.geometry.getAttribute('skinIndex');
+      const skinWeight = mesh.geometry.getAttribute('skinWeight');
+      if (skinIndex && skinWeight && mesh.skeleton) {
+        const weightByBone = new Map();
+        const componentGetters = ['getX', 'getY', 'getZ', 'getW'];
+        const vertexIndices = face
+          ? [face.a, face.b, face.c]
+          : Number.isInteger(vertexIndex)
+            ? [vertexIndex]
+            : [];
+
+        for (const currentVertexIndex of vertexIndices) {
+          for (const getter of componentGetters) {
+            const weight = skinWeight[getter](currentVertexIndex);
+            if (weight <= 0) continue;
+
+            const boneIndex = skinIndex[getter](currentVertexIndex);
+            const boneName = mesh.skeleton.bones[boneIndex]?.name || '';
+            weightByBone.set(
+              boneName,
+              (weightByBone.get(boneName) || 0) + weight
+            );
+          }
+        }
+
+        const dominantBone = [...weightByBone.entries()]
+          .sort((a, b) => b[1] - a[1])[0]?.[0]
+          ?.replace(/[^a-zA-Z0-9]/g, '')
+          .toLowerCase();
+
+        if (dominantBone?.endsWith('l')) return 'left';
+        if (dominantBone?.endsWith('r')) return 'right';
+      }
+
+      // Blender humanoid rigs conventionally place .L bones on +X.
+      return worldPoint.x >= 0 ? 'left' : 'right';
+    }
+
+    function getPressableSkinBounds() {
+      const bounds = new THREE.Box3();
+      for (const mesh of pressableMeshes) {
+        bounds.expandByObject(mesh, true);
+      }
+      return bounds.isEmpty()
+        ? new THREE.Box3().setFromObject(modelRoot)
+        : bounds;
+    }
+
+    function getNormalizedPressPoint(worldPoint) {
+      const bounds = getPressableSkinBounds();
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+
+      return {
+        x: (worldPoint.x - center.x) / Math.max(size.x, 0.0001),
+        y: (worldPoint.y - bounds.min.y) / Math.max(size.y, 0.0001),
+        z: (worldPoint.z - center.z) / Math.max(size.z, 0.0001)
+      };
+    }
+
+    function buildDentVertices(mesh, center, radius, useSkinnedPositions) {
+      const deformation = mesh.userData.skinDeformation;
+      const positions = mesh.geometry.getAttribute('position');
+      const base = deformation.basePositions;
+      const radiusSquared = radius * radius;
+      const vertexIndices = [];
+      const vertexStrengths = [];
+      const posedVertex = new THREE.Vector3();
+
+      for (let vertexIndex = 0; vertexIndex < positions.count; vertexIndex++) {
+        if (useSkinnedPositions) {
+          // Raycast hits the posed surface. Compare against that same posed surface,
+          // especially for forearm vertices displaced by the elbow bone.
+          mesh.getVertexPosition(vertexIndex, posedVertex);
+        } else {
+          const offset = vertexIndex * 3;
+          posedVertex.fromArray(base, offset);
+        }
+
+        const distanceSquared = posedVertex.distanceToSquared(center);
+        if (distanceSquared >= radiusSquared) continue;
+
+        const normalizedDistance = Math.sqrt(distanceSquared) / radius;
+        vertexIndices.push(vertexIndex);
+        vertexStrengths.push(
+          Math.pow(1 - normalizedDistance * normalizedDistance, 2)
+        );
+      }
+
+      return { vertexIndices, vertexStrengths };
+    }
+
+    function getMappedPointIndices(mesh, region, dentVertices) {
+      if (!vertexCorrespondenceReady) return null;
+
+      const pointIndexMap = mesh.userData.pointCloudIndexMap;
+      const pointRegionMap = mesh.userData.pointCloudRegionMap;
+      if (!pointIndexMap || !pointRegionMap) return null;
+
+      const regionCode = region === 'body' ? 0 : region === 'left' ? 1 : 2;
+      const strengthByPointIndex = new Map();
+
+      for (let i = 0; i < dentVertices.vertexIndices.length; i++) {
+        const vertexIndex = dentVertices.vertexIndices[i];
+        if (pointRegionMap[vertexIndex] !== regionCode) continue;
+
+        const pointIndex = pointIndexMap[vertexIndex];
+        if (pointIndex < 0) continue;
+
+        const strength = dentVertices.vertexStrengths[i];
+        const previousStrength = strengthByPointIndex.get(pointIndex) || 0;
+        if (strength > previousStrength) {
+          strengthByPointIndex.set(pointIndex, strength);
+        }
+      }
+
+      const limit = HIGHLIGHT_POINT_COUNTS[region];
+      return [...strengthByPointIndex.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([pointIndex]) => pointIndex);
+    }
+
+    function addDent(intersection) {
+      const mesh = intersection.object;
+      const face = intersection.face;
+      const vertexIndex = intersection.vertexIndex;
+      const deformation = mesh.userData.skinDeformation;
+      if ((!face && !Number.isInteger(vertexIndex)) || !deformation) return false;
+
+      if (activePress && activePress !== mesh) {
+        clearActiveDent(false);
+      }
+
+      const worldScale = mesh.getWorldScale(new THREE.Vector3());
+      const scale = Math.max(worldScale.x, worldScale.y, worldScale.z, 0.0001);
+      const region = getPressedRegion(
+        mesh,
+        face,
+        intersection.point,
+        vertexIndex
+      );
+      const point = getNormalizedPressPoint(intersection.point);
+      const radius = CLICK_RADIUS_WORLD / scale;
+      const center = mesh.worldToLocal(intersection.point.clone());
+      const dentVertices = buildDentVertices(
+        mesh,
+        center,
+        radius,
+        /arm/i.test(mesh.name)
+      );
+      const pointIndices = getMappedPointIndices(mesh, region, dentVertices);
+      deformation.activeDent = {
+        depth: CLICK_DEPTH_WORLD / scale,
+        ...dentVertices
+      };
+
+      applyDents(mesh);
+      activePress = mesh;
+      document.documentElement.dataset.pressed = 'true';
+      notifyParent('baymax-skin-press', {
+        pressed: true,
+        mesh: mesh.name,
+        region,
+        point,
+        pointIndices
+      });
+      return true;
+    }
+
+    function clearActiveDent(notify = true) {
+      if (!activePress) return false;
+      const deformation = activePress.userData.skinDeformation;
+      deformation.activeDent = null;
+      applyDents(activePress);
+      activePress = null;
+      document.documentElement.dataset.pressed = 'false';
+      if (notify) {
+        notifyParent('baymax-skin-press', { pressed: false });
+      }
+      return true;
+    }
+
+    function releaseDent() {
+      clearActiveDent(true);
+    }
+
+    function raycastAtClientPoint(clientX, clientY, rect, objects = skinnedMeshes) {
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      return raycaster.intersectObjects(objects, false)[0] || null;
+    }
+
+    function pickNearestArmVertex(clientX, clientY, rect, radius) {
+      const radiusSquared = radius * radius;
+      const localVertex = new THREE.Vector3();
+      const worldVertex = new THREE.Vector3();
+      const projected = new THREE.Vector3();
+      const candidates = [];
+      let closestScreenDistance = radiusSquared;
+
+      for (const mesh of armMeshes) {
+        const positions = mesh.geometry.getAttribute('position');
+
+        for (let vertexIndex = 0; vertexIndex < positions.count; vertexIndex++) {
+          mesh.getVertexPosition(vertexIndex, localVertex);
+          worldVertex.copy(localVertex).applyMatrix4(mesh.matrixWorld);
+          projected.copy(worldVertex).project(camera);
+          if (projected.z < -1 || projected.z > 1) continue;
+
+          const screenX = rect.left + (projected.x + 1) * rect.width * 0.5;
+          const screenY = rect.top + (1 - projected.y) * rect.height * 0.5;
+          const dx = screenX - clientX;
+          const dy = screenY - clientY;
+          const screenDistance = dx * dx + dy * dy;
+          if (screenDistance > radiusSquared) continue;
+
+          const cameraDistance = camera.position.distanceToSquared(worldVertex);
+          closestScreenDistance = Math.min(
+            closestScreenDistance,
+            screenDistance
+          );
+          candidates.push({
+            object: mesh,
+            point: worldVertex.clone(),
+            vertexIndex,
+            screenX,
+            screenY,
+            screenDistance,
+            cameraDistance
+          });
+        }
+      }
+
+      if (candidates.length === 0) return null;
+
+      // Treat vertices within a few pixels of the most central candidate as
+      // the same screen-space contact, then choose the frontmost one.
+      const centerBandRadius = Math.min(
+        radius,
+        Math.sqrt(closestScreenDistance) + FRONT_SURFACE_SCREEN_BAND_PX
+      );
+      const centerBandSquared = centerBandRadius * centerBandRadius;
+      let bestHit = null;
+      let bestCameraDistance = Infinity;
+
+      for (const candidate of candidates) {
+        if (candidate.screenDistance > centerBandSquared) continue;
+        if (candidate.cameraDistance >= bestCameraDistance) continue;
+
+        bestCameraDistance = candidate.cameraDistance;
+        bestHit = {
+          object: candidate.object,
+          point: candidate.point,
+          vertexIndex: candidate.vertexIndex,
+          screenX: candidate.screenX,
+          screenY: candidate.screenY,
+          distance: Math.sqrt(candidate.cameraDistance)
+        };
+      }
+
+      return bestHit;
+    }
+
+    function pickPressableSurface(clientX, clientY) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const zoomDistance = controls.getDistance();
+      const adaptiveRadius = THREE.MathUtils.clamp(
+        PICK_RADIUS_MIN_PX + (zoomDistance - 7) * 2.4,
+        PICK_RADIUS_MIN_PX,
+        PICK_RADIUS_MAX_PX
+      );
+
+      // At the pointer center, only accept an arm if it is also the frontmost
+      // visible surface among body, head, legs, and both arms.
+      const centerSurfaceHit = raycastAtClientPoint(
+        clientX,
+        clientY,
+        rect
+      );
+      if (
+        centerSurfaceHit &&
+        pressableMeshes.has(centerSurfaceHit.object) &&
+        /arm/i.test(centerSurfaceHit.object.name)
+      ) {
+        return centerSurfaceHit;
+      }
+
+      // If triangle raycasting misses a folded forearm, choose the closest
+      // currently skinned arm vertex in screen space instead of firing many rays.
+      const armVertexHit = pickNearestArmVertex(
+        clientX,
+        clientY,
+        rect,
+        adaptiveRadius
+      );
+      if (armVertexHit) {
+        const visibleAtCandidate = raycastAtClientPoint(
+          armVertexHit.screenX,
+          armVertexHit.screenY,
+          rect
+        );
+        if (
+          !visibleAtCandidate ||
+          armVertexHit.distance <=
+            visibleAtCandidate.distance + OCCLUSION_EPSILON_WORLD
+        ) {
+          return armVertexHit;
+        }
+      }
+
+      // Second pass: only when no arm exists near the pointer.
+      let bestBody = null;
+      let bestBodyScreenDistance = Infinity;
+      let bestBodySurfaceDistance = Infinity;
+      let nearestBlockedScreenDistance = Infinity;
+      const bodyRadiusSquared = BODY_PICK_RADIUS_PX * BODY_PICK_RADIUS_PX;
+
+      for (const [offsetX, offsetY, screenDistance] of PICK_OFFSETS_PX) {
+        if (screenDistance > bodyRadiusSquared) break;
+
+        const hit = raycastAtClientPoint(
+          clientX + offsetX,
+          clientY + offsetY,
+          rect
+        );
+        if (!hit) continue;
+
+        if (!pressableMeshes.has(hit.object)) {
+          nearestBlockedScreenDistance = Math.min(
+            nearestBlockedScreenDistance,
+            screenDistance
+          );
+          continue;
+        }
+
+        if (/arm/i.test(hit.object.name)) return hit;
+
+        if (
+          screenDistance < bestBodyScreenDistance ||
+          (
+            screenDistance === bestBodyScreenDistance &&
+            hit.distance < bestBodySurfaceDistance
+          )
+        ) {
+          bestBody = hit;
+          bestBodyScreenDistance = screenDistance;
+          bestBodySurfaceDistance = hit.distance;
+        }
+      }
+
+      if (
+        bestBody &&
+        bestBodyScreenDistance < nearestBlockedScreenDistance
+      ) {
+        return bestBody;
+      }
+
+      return null;
+    }
+
+    function pressAtClientPoint(clientX, clientY) {
+      const intersection = pickPressableSurface(clientX, clientY);
+      if (intersection) return addDent(intersection);
+
+      releaseDent();
+      return false;
+    }
+
+    function processPendingDrag() {
+      dragFrameId = null;
+      const dragPoint = pendingDragPoint;
+      pendingDragPoint = null;
+
+      if (
+        !viewLocked ||
+        activePointerId === null ||
+        !dragPoint
+      ) return;
+
+      pressAtClientPoint(dragPoint.clientX, dragPoint.clientY);
+    }
+
+    function queueLockedDrag(clientX, clientY) {
+      pendingDragPoint = { clientX, clientY };
+      if (dragFrameId !== null) return;
+      dragFrameId = requestAnimationFrame(processPendingDrag);
+    }
+
+    function finishPointerInteraction() {
+      pendingDragPoint = null;
+      if (dragFrameId !== null) {
+        cancelAnimationFrame(dragFrameId);
+        dragFrameId = null;
+      }
+      const pointerId = activePointerId;
+      activePointerId = null;
+      if (
+        pointerId !== null &&
+        renderer.domElement.hasPointerCapture(pointerId)
+      ) {
+        renderer.domElement.releasePointerCapture(pointerId);
+      }
+      releaseDent();
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      finishPointerInteraction();
+      if (!model) return;
+
+      const intersection = pickPressableSurface(event.clientX, event.clientY);
+      if (!intersection && !viewLocked) return;
+
+      activePointerId = event.pointerId;
+      renderer.domElement.setPointerCapture(event.pointerId);
+      if (intersection) addDent(intersection);
+      if (viewLocked) event.preventDefault();
+    });
+
+    renderer.domElement.addEventListener('pointermove', (event) => {
+      if (
+        !viewLocked ||
+        event.pointerId !== activePointerId
+      ) return;
+
+      if ((event.buttons & 1) === 0) {
+        finishPointerInteraction();
+        return;
+      }
+
+      event.preventDefault();
+      queueLockedDrag(event.clientX, event.clientY);
+    });
+
+    renderer.domElement.addEventListener('pointerup', (event) => {
+      if (
+        activePointerId !== null &&
+        event.pointerId !== activePointerId
+      ) return;
+      finishPointerInteraction();
+    });
+
+    renderer.domElement.addEventListener('pointercancel', (event) => {
+      if (
+        activePointerId !== null &&
+        event.pointerId !== activePointerId
+      ) return;
+      finishPointerInteraction();
+    });
+
+    renderer.domElement.addEventListener('lostpointercapture', (event) => {
+      if (event.pointerId === activePointerId) {
+        finishPointerInteraction();
+      }
+    });
+
+    window.addEventListener('blur', finishPointerInteraction);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) finishPointerInteraction();
+    });
+
+    new GLTFLoader().load(
+      MODEL_URL,
+      (gltf) => {
+        model = gltf.scene;
+        modelRoot.add(model);
+
+        model.traverse((object) => {
+          if (object.isSkinnedMesh) prepareSkinnedMesh(object);
+        });
+
+        if (skinnedMeshes.length === 0) {
+          setStatus('The GLB does not contain a SkinnedMesh.', true);
+          return;
+        }
+
+        indexActualSkeletonBones();
+        const missing = LOGICAL_BONES.filter(
+          (name) => !bonesByLogicalName.has(name)
+        );
+
+        if (missing.length > 0) {
+          setStatus(`Missing bones: ${missing.join(', ')}`, true);
+          return;
+        }
+
+        normalizeModel(modelRoot);
+        applyJointPose();
+        alignPredictedCloudOnce();
+        status.hidden = true;
+        document.documentElement.dataset.skinReady = 'true';
+        document.documentElement.dataset.pressed = 'false';
+        document.documentElement.dataset.pressableMeshCount = String(pressableMeshes.size);
+        notifyParent('baymax-skin-ready');
+      },
+      (event) => {
+        if (!event.total) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setStatus(`Loading skin… ${percent}%`);
+      },
+      (error) => {
+        console.error(error);
+        setStatus('Failed to load the Baymax skin model.', true);
+      }
+    );
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!viewLocked) controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / Math.max(innerHeight, 1);
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

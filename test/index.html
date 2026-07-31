@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing - Juhee Park, Sunoo Kim et al.">
+  <meta name="description" content="Whole-body robotic skin combining a single-piece inflatable envelope with distributed ToF sensors for safe physical human-robot interaction on a full-size humanoid robot.">
+  <meta name="keywords" content="robotic skin, inflatable robot, time-of-flight sensing, whole-body sensing, physical human-robot interaction, pHRI, contact localization, point cloud, humanoid robot, IROS 2026">
+  <meta name="author" content="Juhee Park, Sunoo Kim, Yunseong Bang, Sangjin Kang, Joohyung Kim, Jung Kim, Kyungseo Park">
+  <meta name="robots" content="index, follow">
+  <meta name="language" content="English">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="IRLab DGIST">
+  <meta property="og:title" content="Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing">
+  <meta property="og:description" content="Whole-body robotic skin combining a single-piece inflatable envelope with distributed ToF sensors for safe physical human-robot interaction.">
+  <meta property="og:url" content="https://williamsunookim.github.io/BaymaxSkin">
+  <meta property="og:image" content="static/images/social_preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Inflatable Whole-Body Robotic Skin - Research Preview">
+  <meta property="article:published_time" content="2026-01-01T00:00:00.000Z">
+  <meta property="article:author" content="Juhee Park">
+  <meta property="article:section" content="Research">
+  <meta property="article:tag" content="robotic skin">
+  <meta property="article:tag" content="human-robot interaction">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@IRLab_DGIST">
+  <meta name="twitter:creator" content="@IRLab_DGIST">
+  <meta name="twitter:title" content="Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing">
+  <meta name="twitter:description" content="Whole-body robotic skin combining a single-piece inflatable envelope with distributed ToF sensors for safe physical human-robot interaction.">
+  <meta name="twitter:image" content="static/images/social_preview.png">
+  <meta name="twitter:image:alt" content="Inflatable Whole-Body Robotic Skin - Research Preview">
+
+  <!-- Academic/Research Specific -->
+  <meta name="citation_title" content="Inflatable Whole-Body Robotic Skin with Internal Time-of-Flight (ToF) Depth Sensing and Kinematics-Based Point-Cloud Prediction">
+  <meta name="citation_author" content="Park, Juhee">
+  <meta name="citation_author" content="Kim, Sunoo">
+  <meta name="citation_author" content="Bang, Yunseong">
+  <meta name="citation_author" content="Kang, Sangjin">
+  <meta name="citation_author" content="Kim, Joohyung">
+  <meta name="citation_author" content="Kim, Jung">
+  <meta name="citation_author" content="Park, Kyungseo">
+  <meta name="citation_publication_date" content="2026">
+  <meta name="citation_conference_title" content="IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)">
+  <meta name="citation_pdf_url" content="static/pdfs/paper.pdf">
+  
+  <!-- Additional SEO -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="msapplication-TileColor" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://ajax.googleapis.com">
+  <link rel="preconnect" href="https://documentcloud.adobe.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preload" href="static/models/series_model_best_quant.onnx" as="fetch" crossorigin="anonymous">
+
+
+  <title>Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing | IROS 2026</title>
+  
+  <!-- Favicon and App Icons -->
+  <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+  <link rel="apple-touch-icon" href="static/images/favicon.ico">
+  
+  <!-- Critical CSS - Load synchronously -->
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  
+  <!-- Non-critical CSS - Load asynchronously -->
+  <link rel="preload" href="static/css/bulma-carousel.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="static/css/bulma-slider.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="static/css/fontawesome.all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  
+  <!-- Fallback for browsers that don't support preload -->
+  <noscript>
+    <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+    <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+    <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  </noscript>
+  
+  <!-- Fonts - Optimized loading -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Defer non-critical JavaScript -->
+  <script defer src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script defer src="static/js/bulma-carousel.min.js"></script>
+  <script defer src="static/js/bulma-slider.min.js"></script>
+  <script defer src="static/js/index.js"></script>
+  
+  <!-- Structured Data for Academic Papers -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "Inflatable Whole-Body Robotic Skin with Internal Time-of-Flight (ToF) Depth Sensing and Kinematics-Based Point-Cloud Prediction",
+    "description": "Whole-body robotic skin combining a single-piece inflatable envelope with distributed ToF sensors for safe physical human-robot interaction.",
+    "author": [
+      {"@type": "Person", "name": "Juhee Park", "affiliation": {"@type": "Organization", "name": "KAIST"}},
+      {"@type": "Person", "name": "Sunoo Kim", "affiliation": {"@type": "Organization", "name": "DGIST"}},
+      {"@type": "Person", "name": "Yunseong Bang", "affiliation": {"@type": "Organization", "name": "DGIST"}},
+      {"@type": "Person", "name": "Sangjin Kang", "affiliation": {"@type": "Organization", "name": "DGIST"}},
+      {"@type": "Person", "name": "Joohyung Kim", "affiliation": {"@type": "Organization", "name": "University of Illinois Urbana-Champaign"}},
+      {"@type": "Person", "name": "Jung Kim", "affiliation": {"@type": "Organization", "name": "KAIST"}},
+      {"@type": "Person", "name": "Kyungseo Park", "affiliation": {"@type": "Organization", "name": "DGIST"}}
+    ],
+    "datePublished": "2026-01-01",
+    "publisher": {"@type": "Organization", "name": "IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)"},
+    "url": "https://williamsunookim.github.io/BaymaxSkin",
+    "image": "static/images/social_preview.png",
+    "keywords": ["robotic skin", "inflatable robot", "time-of-flight sensing", "whole-body sensing", "physical human-robot interaction", "contact localization", "point cloud", "humanoid robot"],
+    "abstract": "Whole-body physical human-robot interaction (pHRI) with humanoid robots is commonly addressed through collision avoidance and/or robotic skin, each with distinct limitations. We propose a robotic skin that combines a single-piece inflatable envelope with distributed time-of-flight (ToF) sensors. The inflatable skin creates a large standoff distance between the contact surface and the rigid frame. ToF sensors with wide field-of-view achieve full coverage without blind spots, scaling to 116 sensors across a full-size humanoid robot at 20 Hz.",
+    "isAccessibleForFree": true,
+    "about": [
+      {"@type": "Thing", "name": "Physical Human-Robot Interaction"},
+      {"@type": "Thing", "name": "Robotic Skin"},
+      {"@type": "Thing", "name": "Tactile Sensing"}
+    ]
+  }
+  </script>
+  
+  <!-- Website/Organization Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "IRLab DGIST",
+    "url": "https://dgist-robot.github.io",
+    "logo": "static/images/favicon.ico"
+  }
+  </script>
+</head>
+<body>
+
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-to-top" onclick="scrollToTop()" title="Scroll to top" aria-label="Scroll to top">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+
+  <!-- More Works Dropdown -->
+  <div class="more-works-container">
+    <button class="more-works-btn" onclick="toggleMoreWorks()" title="View More Works from Our Lab">
+      <i class="fas fa-flask"></i>
+      More Works
+      <i class="fas fa-chevron-down dropdown-arrow"></i>
+    </button>
+    <div class="more-works-dropdown" id="moreWorksDropdown">
+      <div class="dropdown-header">
+        <h4>More Works from Our Lab</h4>
+        <button class="close-btn" onclick="toggleMoreWorks()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="works-list">
+        <a href="https://dgist-robot.github.io" class="work-item" target="_blank">
+          <div class="work-info">
+            <h5>IRLab @ DGIST</h5>
+            <p>Interactive Robotics Laboratory — research on physical human-robot interaction, intelligent robot skin, and contact-rich whole-body control.</p>
+            <span class="work-venue">DGIST</span>
+          </div>
+          <i class="fas fa-external-link-alt"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <main id="main-content">
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <div class="acceptance-banner" role="status" aria-label="Paper acceptance announcement">
+              <span class="icon">
+                <i class="fas fa-trophy"></i>
+              </span>
+              <span>Congratulations! Accepted to IROS 2026</span>
+            </div>
+            <!-- TODO: Replace with your paper title -->
+            <h1 class="title is-1 publication-title">Inflatable Whole-Body Robotic Skin with Internal Time-of-Flight (ToF) Depth Sensing and Kinematics-Based Point-Cloud Prediction</h1>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">Juhee Park<sup>1†</sup>,</span>
+              <span class="author-block"><a href="https://williamsunookim.github.io" target="_blank">Sunoo Kim</a><sup>2†</sup>,</span>
+              <span class="author-block">Yunseong Bang<sup>2</sup>,</span>
+              <span class="author-block">Sangjin Kang<sup>2</sup>,</span>
+              <span class="author-block"><a href="https://publish.illinois.edu/kimlab2020/" target="_blank">Joohyung Kim</a><sup>3</sup>,</span>
+              <span class="author-block"><a href="https://biorobotics.kaist.ac.kr/" target="_blank">Jung Kim</a><sup>1</sup>,</span>
+              <span class="author-block"><a href="https://kspark.me/home" target="_blank">Kyungseo Park</a><sup>2,*</sup></span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <sup>1</sup><a href="https://biorobotics.kaist.ac.kr/" target="_blank">KAIST</a> &nbsp;
+                <sup>2</sup><a href="https://dgist-robot.github.io" target="_blank">DGIST</a> &nbsp;
+                <sup>3</sup><a href="https://publish.illinois.edu/kimlab2020/" target="_blank">UIUC</a>
+              </span>
+              <span class="eql-cntrb"><small><br><sup>†</sup>These authors contributed equally to this work &nbsp; <sup>*</sup>Corresponding author: kspark@dgist.ac.kr</small></span>
+            </div>
+
+                  <div class="column has-text-centered">
+                    <div class="publication-links">
+                         <!-- TODO: Update with your arXiv paper ID -->
+                      <span class="link-block">
+                        <a href="" data-note="https://arxiv.org/pdf/<ARXIV PAPER ID>.pdf" target="_blank"
+                        class="external-link button is-normal is-rounded is-dark">
+                        <span class="icon">
+                          <i class="fas fa-file-pdf"></i>
+                        </span>
+                        <span>IROS 2026 (TBD)</span>
+                      </a>
+                    </span>
+
+                    <!-- TODO: Add your supplementary material PDF or remove this section -->
+                    <span class="link-block">
+                      <a href="" data-note="static/pdfs/supplementary_material.pdf" target="_blank"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fas fa-file-pdf"></i>
+                      </span>
+                      <span>Supplementary (TBD)</span>
+                    </a>
+                  </span>
+
+                  <!-- TODO: Replace with your GitHub repository URL -->
+                  <span class="link-block">
+                    <a href="" data-note="https://github.com/YOUR REPO HERE" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code (TBD)</span>
+                  </a>
+                </span>
+
+                <!-- TODO: Update with your arXiv paper ID -->
+                <span class="link-block">
+                  <a href="" data-note="https://arxiv.org/abs/<ARXIV PAPER ID>" target="_blank"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv (TBD)</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Teaser video -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video poster="" id="teaser-video" autoplay controls muted loop height="100%" preload="metadata">
+        <!-- [Placeholder] Replace with supplementary video when available -->
+        <source src="static/videos/IROS2026.mp4" type="video/mp4">
+      </video>
+      <h2 class="subtitle has-text-centered" style="margin-top:1rem;">
+        An inflatable Baymax costume serves as the robotic skin envelope. Distributed internal ToF sensors detect whole-body contact during dynamic human–robot interaction.
+      </h2>
+    </div>
+  </div>
+</section>
+<!-- End teaser video -->
+
+<!-- Paper abstract -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Whole-body physical human-robot interaction (pHRI) with humanoid robots is commonly addressed through collision avoidance and/or robotic skin, each with distinct limitations. Collision avoidance provides substantial geometric clearance but cannot handle or mitigate contact once it occurs. Robotic skin directly measures contact, yet thin-skin designs leave minimal safety margin; slow reactions or forces exceeding the skin's elastic limit may pose risks. We propose a robotic skin that combines a single-piece inflatable envelope with distributed time-of-flight (ToF) sensors. The inflatable skin creates a large standoff distance between the contact surface and the rigid frame, providing geometric margin comparable to collision avoidance. Sensing occurs within the controlled volume of the skin, reducing errors common in open-environment perception. Moreover, even small objects produce measurable deformation over a large area. ToF sensors with wide field-of-view achieve full coverage without blind spots, scaling to 116 sensors across a full-size humanoid robot at 20 Hz. To enable motion-agnostic contact localization, we train a neural network that predicts the nominal (contact-free) surface geometry from joint angles and detect external contact as deviations from this prediction. The system is validated in human–robot interaction experiments that include single-point contact, multi-touch, and distributed contact such as full-body hugging.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- End paper abstract -->
+
+
+<!-- Key Contributions -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Key Contributions</h2>
+    <div class="columns is-centered">
+      <div class="column">
+        <div class="box" style="height:100%;">
+          <div class="has-text-centered" style="font-size:2rem; margin-bottom:0.5rem;">🫧</div>
+          <h3 class="title is-5 has-text-centered">Inflatable Robotic Skin</h3>
+          <p class="has-text-justified">A single-piece commercial Baymax costume serves as the inflatable skin, physically separating the contact surface from the rigid frame through a large standoff distance. This provides geometric margin comparable to collision avoidance while enabling contact detection within the controlled volume of the skin.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box" style="height:100%;">
+          <div class="has-text-centered" style="font-size:2rem; margin-bottom:0.5rem;">📡</div>
+          <h3 class="title is-5 has-text-centered">ToF-Based Whole-Body Sensing</h3>
+          <p class="has-text-justified">Custom multizone ToF sensor modules (VL53L5CX) with 45°-tilted orientation achieve 360° coverage around each body segment. A pipeline transforms raw distance arrays into a unified point cloud, covering the full humanoid body with 116 sensors across 16 modules at 20 Hz, without blind spots.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box" style="height:100%;">
+          <div class="has-text-centered" style="font-size:2rem; margin-bottom:0.5rem;">🧠</div>
+          <h3 class="title is-5 has-text-centered">Learning-Based Contact Localization</h3>
+          <p class="has-text-justified">A feedforward MLP predicts the nominal (contact-free) skin surface from joint angles. External contact is detected as deviations between the predicted and observed point clouds, and DBSCAN clustering rejects noise-induced false positives for robust contact localization during dynamic movement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- End Key Contributions -->
+
+
+<!-- Paper poster -->
+<!-- <section class="hero is-small is-light">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title">Poster</h2>
+      <iframe  src="static/pdfs/sample.pdf" width="100%" height="550">
+          </iframe>
+        
+      </div>
+    </div>
+  </section> -->
+<!--End paper poster -->
+
+
+
+<!-- Interactive Point Cloud Demo -->
+<section class="section hero is-light" id="interactive-demo">
+  <style>
+    .demo-wrapper { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .demo-controls {
+      flex: 0 0 280px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid #dbdbdb;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .demo-viewers {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .demo-viewer-wrap {
+      min-width: 0; position: relative;
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid #dbdbdb;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    #demo-canvas { display: block; width: 100% !important; height: 450px !important; }
+    #skin-viewer {
+      display: block;
+      width: 100%;
+      height: 450px;
+      border: 0;
+      background: #f5f5f5;
+    }
+    .viewer-label {
+      position: absolute; z-index: 2; top: 10px; left: 12px;
+      padding: 4px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.88); color: #4a4a4a;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      font-size: 0.68rem; font-weight: 600; pointer-events: none;
+    }
+    .viewer-hint {
+      position: absolute; bottom: 10px; right: 12px;
+      padding: 3px 6px; border-radius: 4px;
+      background: rgba(255,255,255,0.78);
+      font-size: 0.68rem; color: #888888; pointer-events: none;
+    }
+    @media (max-width: 1023px) {
+      .demo-wrapper { flex-direction: column; }
+      .demo-controls { width: 100%; flex-basis: auto; }
+      .demo-viewers { width: 100%; }
+    }
+    @media (max-width: 640px) {
+      .demo-viewers { grid-template-columns: 1fr; }
+    }
+    .model-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; padding: 6px 10px; border-radius: 20px;
+      margin-bottom: 1rem; border: 1px solid #dbdbdb;
+    }
+    .model-status.loading { background: #f5f5f5; color: #aaaaaa; }
+    .model-status.ready   { background: #effaf5; color: #257953; border-color: #48c78e; }
+    .model-status.demo    { background: #f3f0ff; color: #6941c6; border-color: #9b72f0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .joint-group { margin-bottom: 1rem; }
+    .joint-group-title {
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #7a7a7a; margin-bottom: 0.5rem;
+      padding-bottom: 4px; border-bottom: 1px solid #ededed;
+    }
+    .joint-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .joint-label { font-size: 0.72rem; color: #363636; width: 100px; flex-shrink: 0; }
+    .joint-slider {
+      flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+      background: #dbdbdb; border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .joint-slider.lj::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; background:#3273dc; border-radius:50%; cursor:pointer; }
+    .joint-slider.rj::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; background:#e53935; border-radius:50%; cursor:pointer; }
+    .joint-slider.lj::-moz-range-thumb { width:14px; height:14px; background:#3273dc; border-radius:50%; border:none; cursor:pointer; }
+    .joint-slider.rj::-moz-range-thumb { width:14px; height:14px; background:#e53935; border-radius:50%; border:none; cursor:pointer; }
+    .joint-val { font-size:0.7rem; color:#7a7a7a; width:36px; text-align:right; flex-shrink:0; font-family:monospace; }
+    .demo-buttons { display:flex; gap:8px; margin-top:1rem; margin-bottom:1rem; }
+    .demo-btn {
+      flex:1; padding:7px 12px; border-radius:6px; border:1px solid #dbdbdb;
+      cursor:pointer; font-size:0.8rem; font-weight:500; transition:all 0.15s;
+      background:#ffffff; color:#363636;
+    }
+    .demo-btn:hover { background: #f5f5f5; border-color: #b5b5b5; }
+    .demo-btn.active { background:#effaf5; color:#257953; border-color:#48c78e; }
+    .demo-legend { display:flex; flex-wrap:wrap; gap:0.5rem 1rem; margin-top:0.5rem; }
+    .legend-item { display:flex; align-items:center; gap:5px; font-size:0.72rem; color:#7a7a7a; }
+    .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .onnx-note { font-size:0.68rem; color:#aaaaaa; margin-top:1rem; line-height:1.5; }
+    .onnx-note code { background:#f5f5f5; padding:1px 4px; border-radius:3px; font-family:monospace; color:#363636; }
+  </style>
+
+  <div class="container is-widescreen">
+    <h2 class="title is-3 has-text-centered">Interactive Demo</h2>
+    <p class="subtitle is-6 has-text-centered" style="margin-bottom:1.75rem;">
+      Move the joint sliders to control both models. Press and hold the body or arms to indent the skin.
+    </p>
+    <div class="demo-wrapper">
+
+      <!-- Controls panel -->
+      <div class="demo-controls">
+        <div id="model-status" class="model-status loading">
+          <span class="status-dot"></span>
+          <span id="status-text">Initializing...</span>
+        </div>
+        <div id="load-progress" style="display:none; margin-bottom:0.75rem;">
+          <div style="background:#ededed; border-radius:4px; height:6px; overflow:hidden;">
+            <div id="load-bar" style="height:100%; width:0%; background:#3273dc; border-radius:4px; transition:width 0.2s;"></div>
+          </div>
+          <div id="load-detail" style="font-size:0.68rem; color:#aaa; margin-top:3px; line-height:1.4;"></div>
+        </div>
+        <p style="font-size:0.68rem; color:#aaaaaa; margin-bottom:0.75rem; line-height:1.5;">
+          Initial load may take <strong>1–2 minutes</strong> — the AI model (~30 MB) and 3D meshes are fetched from this server.
+        </p>
+
+        <!-- <div class="joint-group">
+          <div class="joint-group-title" style="color:#4488ff;">Left Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider lj" id="slider-0" min="-1.57" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-0">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider lj" id="slider-1" min="-1.57" max="0.00" step="0.01" value="-0.35"><span class="joint-val" id="val-1">-20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider lj" id="slider-3" min="-0.80" max="1.57" step="0.01" value="0"    ><span class="joint-val" id="val-3">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider lj" id="slider-4" min="-0.785" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-4">0°</span></div>
+        </div>
+
+        <div class="joint-group">
+          <div class="joint-group-title" style="color:#ff5555;">Right Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider rj" id="slider-2" min="0.00"  max="1.57" step="0.01" value="0"   ><span class="joint-val" id="val-2">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider rj" id="slider-5" min="0.00"  max="1.57" step="0.01" value="0.35"><span class="joint-val" id="val-5">20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider rj" id="slider-6" min="-1.57" max="0.80" step="0.01" value="0"   ><span class="joint-val" id="val-6">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider rj" id="slider-7" min="0.00"  max="0.785" step="0.01" value="0"   ><span class="joint-val" id="val-7">0°</span></div>
+        </div> -->
+        <div class="joint-group">
+          <div class="joint-group-title" style="color:#4488ff;">Left Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider lj" id="slider-0" min="-1.04" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-0">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider lj" id="slider-1" min="-1.04" max="0.00" step="0.01" value="-0.35"><span class="joint-val" id="val-1">-20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider lj" id="slider-3" min="-0.80" max="1.04" step="0.01" value="0"    ><span class="joint-val" id="val-3">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider lj" id="slider-4" min="-0.785" max="0.00" step="0.01" value="0"    ><span class="joint-val" id="val-4">0°</span></div>
+        </div>
+
+        <div class="joint-group">
+          <div class="joint-group-title" style="color:#ff5555;">Right Arm</div>
+          <div class="joint-row"><span class="joint-label">Shoulder Pitch</span><input type="range" class="joint-slider rj" id="slider-2" min="0.00"  max="1.04" step="0.01" value="0"   ><span class="joint-val" id="val-2">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Roll</span> <input type="range" class="joint-slider rj" id="slider-5" min="0.00"  max="1.04" step="0.01" value="0.35"><span class="joint-val" id="val-5">20°</span></div>
+          <div class="joint-row"><span class="joint-label">Shoulder Yaw</span>  <input type="range" class="joint-slider rj" id="slider-6" min="-1.04" max="0.80" step="0.01" value="0"   ><span class="joint-val" id="val-6">0°</span></div>
+          <div class="joint-row"><span class="joint-label">Elbow</span>         <input type="range" class="joint-slider rj" id="slider-7" min="0.00"  max="0.785" step="0.01" value="0"   ><span class="joint-val" id="val-7">0°</span></div>
+        </div>
+
+        <div class="joint-group" style="margin-top:0.5rem;">
+          <div class="joint-group-title">Visualization</div>
+          <div class="joint-row">
+            <span class="joint-label">Point Size</span>
+            <input type="range" class="joint-slider lj" id="point-size-slider" min="0.004" max="0.05" step="0.001" value="0.020">
+            <span class="joint-val" id="point-size-val">0.020</span>
+          </div>
+        </div>
+
+        <div class="demo-buttons">
+          <button class="demo-btn" id="reset-btn">↺ Reset</button>
+        </div>
+
+        <div class="demo-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#888888;"></span>Body</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3273dc;"></span>L Arm</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#e53935;"></span>R Arm</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ffc107;"></span>Pressed area</div>
+        </div>
+
+      </div>
+
+      <div class="demo-viewers">
+        <!-- URDF + point-cloud viewer -->
+        <div class="demo-viewer-wrap">
+          <span class="viewer-label">URDF + predicted surface</span>
+          <canvas id="demo-canvas"></canvas>
+          <div class="viewer-hint">Drag to rotate · Scroll to zoom</div>
+        </div>
+
+        <!-- Joint-synchronized clickable skin viewer -->
+        <div class="demo-viewer-wrap">
+          <span class="viewer-label">Interactive skin</span>
+          <iframe
+            id="skin-viewer"
+            src="index_bone_alias_fixed.html"
+            title="Joint-synchronized clickable Baymax skin"
+            loading="lazy"
+          ></iframe>
+          <div class="viewer-hint" id="skin-viewer-hint">
+            Hold body/arms to press · Drag to rotate
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    const N_BODY = 576, N_ARM = 640;
+    // joint index in model input: [LSP(0), LSR(1), RSP(2), LSY(3), LE(4), RSR(5), RSY(6), RE(7)]
+    // Limits from skeleton_v3 URDF
+    // input order: [LSP(0), LSR(1), RSP(2), LSY(3), LE(4), RSR(5), RSY(6), RE(7)]
+    const JOINTS = [
+      {id:0, min:-1.04, max: 0.00}, // LSP
+      {id:1, min:-1.04, max: 0.00}, // LSR
+      {id:2, min: 0.00, max: 1.04}, // RSP
+      {id:3, min:-0.80, max: 1.04}, // LSY
+      {id:4, min:-0.785, max: 0.00}, // LE
+      {id:5, min: 0.00, max: 1.04}, // RSR
+      {id:6, min:-1.04, max: 0.80}, // RSY
+      {id:7, min: 0.00, max: 0.785}, // RE
+    ];
+
+    // Default pose: LSR=-0.35, RSR=0.35 (matches node.default())
+    let jv = new Float32Array([0, -0.35, 0, 0, 0, 0.35, 0, 0]);
+    let scene, camera, renderer, controls, bodyGeo, leftGeo, rightGeo;
+    let bodyMat, leftMat, rightMat;
+    let contactGeo, contactMat;
+    let session = null, modelLoaded = false;
+    let busy = false;
+    let pointCloudReady = false;
+    let activeSkinPress = null;
+    let jointObjects = {}; // urdf joint name -> { frame: Object3D, axis: Vector3 }
+    const skinFrame = document.getElementById('skin-viewer');
+    const skinViewerHint = document.getElementById('skin-viewer-hint');
+    const CONTACT_POINT_COUNT = 20;
+    const BODY_CONTACT_POINT_COUNT = 12;
+
+    function sendSkinJointState() {
+      if (!skinFrame || !skinFrame.contentWindow) return;
+      const targetOrigin = location.origin === 'null' ? '*' : location.origin;
+      skinFrame.contentWindow.postMessage(
+        { type: 'baymax-joints', joints: Array.from(jv) },
+        targetOrigin
+      );
+    }
+
+    function sendSkinPointCloud() {
+      if (
+        !pointCloudReady ||
+        !skinFrame ||
+        !skinFrame.contentWindow ||
+        !bodyGeo ||
+        !leftGeo ||
+        !rightGeo
+      ) return;
+
+      const targetOrigin = location.origin === 'null' ? '*' : location.origin;
+      skinFrame.contentWindow.postMessage(
+        {
+          type: 'baymax-pointcloud',
+          body: bodyGeo.getAttribute('position').array,
+          left: leftGeo.getAttribute('position').array,
+          right: rightGeo.getAttribute('position').array
+        },
+        targetOrigin
+      );
+    }
+
+    if (skinFrame) {
+      skinFrame.addEventListener('load', sendSkinJointState);
+      window.addEventListener('message', (event) => {
+        if (event.source !== skinFrame.contentWindow) return;
+
+        if (event.data?.type === 'baymax-skin-ready') {
+          sendSkinJointState();
+          sendSkinPointCloud();
+        } else if (event.data?.type === 'baymax-skin-press') {
+          activeSkinPress = event.data.pressed
+            ? {
+                region: event.data.region,
+                point: event.data.point,
+                pointIndices: Array.isArray(event.data.pointIndices)
+                  ? event.data.pointIndices
+                  : null
+              }
+            : null;
+          updateContactHighlight();
+        } else if (event.data?.type === 'baymax-skin-view-lock') {
+          if (skinViewerHint) {
+            skinViewerHint.textContent = event.data.locked
+              ? 'Hold + drag to move the press · View locked'
+              : 'Hold body/arms to press · Drag to rotate';
+          }
+        }
+      });
+    }
+
+    /* ---- THREE.JS ---- */
+    function initThree() {
+      const canvas = document.getElementById('demo-canvas');
+      const W = canvas.parentElement.clientWidth || 600, H = 450;
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf5f5f5);
+      scene.add(new THREE.GridHelper(2, 20, 0xcccccc, 0xe0e0e0));
+      camera = new THREE.PerspectiveCamera(50, W / H, 0.01, 100);
+      camera.position.set(0.5, 1.3, 1.8);
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 0.9, 0);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.update();
+
+      bodyGeo  = new THREE.BufferGeometry();
+      leftGeo  = new THREE.BufferGeometry();
+      rightGeo = new THREE.BufferGeometry();
+      bodyGeo.setAttribute( 'position', new THREE.BufferAttribute(new Float32Array(N_BODY * 3), 3));
+      leftGeo.setAttribute( 'position', new THREE.BufferAttribute(new Float32Array(N_ARM  * 3), 3));
+      rightGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N_ARM  * 3), 3));
+
+      bodyMat  = new THREE.PointsMaterial({color:0x888888, size:0.020});
+      leftMat  = new THREE.PointsMaterial({color:0x3273dc, size:0.020});
+      rightMat = new THREE.PointsMaterial({color:0xe53935, size:0.020});
+      contactGeo = new THREE.BufferGeometry();
+      contactGeo.setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(CONTACT_POINT_COUNT * 3), 3)
+      );
+      contactGeo.setDrawRange(0, 0);
+      contactMat = new THREE.PointsMaterial({
+        color: 0xffc107,
+        size: 0.045,
+        depthTest: false,
+        depthWrite: false
+      });
+
+      // ROS2 is Z-up; rotate group -90° around X to convert to Three.js Y-up
+      const pcGroup = new THREE.Group();
+      pcGroup.rotation.x = -Math.PI / 2;
+      pcGroup.add(new THREE.Points(bodyGeo,  bodyMat));
+      pcGroup.add(new THREE.Points(leftGeo,  leftMat));
+      pcGroup.add(new THREE.Points(rightGeo, rightMat));
+      const contactPoints = new THREE.Points(contactGeo, contactMat);
+      contactPoints.renderOrder = 10;
+      pcGroup.add(contactPoints);
+      scene.add(pcGroup);
+
+      window.addEventListener('resize', () => {
+        const w = canvas.parentElement.clientWidth || 600;
+        camera.aspect = w / H; camera.updateProjectionMatrix(); renderer.setSize(w, H);
+      });
+      // Lighting for robot mesh rendering
+      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(1, 3, 2);
+      scene.add(dirLight);
+
+      (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+    }
+
+    function setCloud(geo, arr) {
+      const a = geo.getAttribute('position');
+      a.array.set(arr); a.needsUpdate = true;
+    }
+
+    function updateContactHighlight() {
+      if (!contactGeo) return;
+      contactGeo.setDrawRange(0, 0);
+      if (!activeSkinPress || !modelLoaded) return;
+
+      const point = activeSkinPress.point;
+      const region = activeSkinPress.region;
+      const candidateGeometry = region === 'left'
+        ? leftGeo
+        : region === 'right'
+          ? rightGeo
+          : bodyGeo;
+      const candidateValues = candidateGeometry.getAttribute('position').array;
+      const requestedCount = region === 'body'
+        ? BODY_CONTACT_POINT_COUNT
+        : CONTACT_POINT_COUNT;
+      const highlightPositions = contactGeo.getAttribute('position');
+
+      if (activeSkinPress.pointIndices?.length) {
+        let count = 0;
+        for (const pointIndex of activeSkinPress.pointIndices) {
+          if (
+            count >= requestedCount ||
+            !Number.isInteger(pointIndex) ||
+            pointIndex < 0 ||
+            pointIndex * 3 + 2 >= candidateValues.length
+          ) continue;
+
+          const sourceIndex = pointIndex * 3;
+          const targetIndex = count * 3;
+          highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
+          highlightPositions.array[targetIndex + 1] =
+            candidateValues[sourceIndex + 1];
+          highlightPositions.array[targetIndex + 2] =
+            candidateValues[sourceIndex + 2];
+          count++;
+        }
+
+        highlightPositions.needsUpdate = true;
+        contactGeo.setDrawRange(0, count);
+        return;
+      }
+
+      // Fallback used only if the one-time vertex correspondence is not ready yet.
+      if (
+        !point ||
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        !Number.isFinite(point.z)
+      ) return;
+
+      const allGeometries = [bodyGeo, leftGeo, rightGeo];
+      const bounds = {
+        minX: Infinity, maxX: -Infinity,
+        minY: Infinity, maxY: -Infinity,
+        minZ: Infinity, maxZ: -Infinity
+      };
+
+      for (const geometry of allGeometries) {
+        const values = geometry.getAttribute('position').array;
+        for (let i = 0; i < values.length; i += 3) {
+          // Point-cloud arrays are ROS Z-up; this matches pcGroup's -90° X rotation.
+          const x = values[i];
+          const y = values[i + 2];
+          const z = -values[i + 1];
+          bounds.minX = Math.min(bounds.minX, x);
+          bounds.maxX = Math.max(bounds.maxX, x);
+          bounds.minY = Math.min(bounds.minY, y);
+          bounds.maxY = Math.max(bounds.maxY, y);
+          bounds.minZ = Math.min(bounds.minZ, z);
+          bounds.maxZ = Math.max(bounds.maxZ, z);
+        }
+      }
+
+      const sizeX = bounds.maxX - bounds.minX;
+      const sizeY = bounds.maxY - bounds.minY;
+      const sizeZ = bounds.maxZ - bounds.minZ;
+      if (
+        !Number.isFinite(sizeX) ||
+        sizeX < 0.0001 ||
+        sizeY < 0.0001 ||
+        sizeZ < 0.0001
+      ) return;
+
+      const centerX = (bounds.minX + bounds.maxX) * 0.5;
+      const centerZ = (bounds.minZ + bounds.maxZ) * 0.5;
+
+      // GLB: X=left/right, Y=up, Z=front/back.
+      // Point-cloud viewer: X=front/back, Y=up, Z=left/right.
+      const target = {
+        x: point.x,
+        y: point.y,
+        z: point.z
+      };
+
+      const nearest = [];
+
+      for (let i = 0; i < candidateValues.length; i += 3) {
+        const x = candidateValues[i];
+        const y = candidateValues[i + 2];
+        const z = -candidateValues[i + 1];
+        const normalizedX = (x - centerX) / sizeX;
+        const normalizedY = (y - bounds.minY) / sizeY;
+        const normalizedZ = (z - centerZ) / sizeZ;
+        const dx = normalizedX - target.x;
+        const dy = normalizedY - target.y;
+        const dz = normalizedZ - target.z;
+        nearest.push({
+          index: i,
+          distance: dx * dx + dy * dy * 1.25 + dz * dz
+        });
+      }
+
+      nearest.sort((a, b) => a.distance - b.distance);
+      const count = Math.min(requestedCount, nearest.length);
+
+      for (let i = 0; i < count; i++) {
+        const sourceIndex = nearest[i].index;
+        const targetIndex = i * 3;
+        highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
+        highlightPositions.array[targetIndex + 1] = candidateValues[sourceIndex + 1];
+        highlightPositions.array[targetIndex + 2] = candidateValues[sourceIndex + 2];
+      }
+
+      highlightPositions.needsUpdate = true;
+      contactGeo.setDrawRange(0, count);
+    }
+
+    /* ---- URDF FK SKELETON (STL meshes) ---- */
+    // model input order → URDF joint name
+    const ID_TO_JOINT = [
+      'left_shoulder_pitch_joint',  // 0 LSP
+      'left_shoulder_roll_joint',   // 1 LSR
+      'right_shoulder_pitch_joint', // 2 RSP
+      'left_shoulder_yaw_joint',    // 3 LSY
+      'left_elbow_joint',           // 4 LE
+      'right_shoulder_roll_joint',  // 5 RSR
+      'right_shoulder_yaw_joint',   // 6 RSY
+      'right_elbow_joint',          // 7 RE
+    ];
+
+    function buildRobot(xml) {
+      // Parse joints
+      const joints = {};
+      for (const j of xml.querySelectorAll('joint')) {
+        const name   = j.getAttribute('name');
+        const type   = j.getAttribute('type');
+        const parent = j.querySelector('parent')?.getAttribute('link') || '';
+        const child  = j.querySelector('child')?.getAttribute('link')  || '';
+        const oEl    = j.querySelector('origin');
+        const aEl    = j.querySelector('axis');
+        const xyz  = (oEl?.getAttribute('xyz')  || '0 0 0').split(' ').map(Number);
+        const rpy  = (oEl?.getAttribute('rpy')  || '0 0 0').split(' ').map(Number);
+        const axis = (aEl?.getAttribute('xyz')  || '0 0 1').split(' ').map(Number);
+        joints[name] = { name, type, parent, child, xyz, rpy, axis };
+      }
+
+      // Parse link visuals
+      const linkVisuals = {};
+      for (const l of xml.querySelectorAll('link')) {
+        const name   = l.getAttribute('name');
+        const meshEl = l.querySelector('visual geometry mesh');
+        if (!meshEl) continue;
+        const raw    = meshEl.getAttribute('filename') || '';
+        const scaleS = meshEl.getAttribute('scale');
+        const scale  = scaleS ? scaleS.split(' ').map(Number) : [1, 1, 1];
+        // package://my_robot_bringup/description/meshes/skeleton_v3/foo.stl → static/meshes/foo.stl
+        const filename = raw.replace(/^package:\/\/[^/]+(?:\/[^/]+)*\/meshes\/[^/]+\//, '');
+        const url    = 'static/meshes/' + filename;
+        const oEl    = l.querySelector('visual origin');
+        const xyz    = (oEl?.getAttribute('xyz') || '0 0 0').split(' ').map(Number);
+        const rpy    = (oEl?.getAttribute('rpy') || '0 0 0').split(' ').map(Number);
+        linkVisuals[name] = { url, scale, xyz, rpy };
+      }
+
+      // Build FK tree (Object3D per link)
+      const linkFrames = {};
+      const robotRoot  = new THREE.Group();
+      robotRoot.rotation.x = -Math.PI / 2; // ROS Z-up → Three.js Y-up
+      scene.add(robotRoot);
+      linkFrames['base_link'] = robotRoot;
+
+      for (const jd of Object.values(joints)) {
+        const parentFrame = linkFrames[jd.parent];
+        if (!parentFrame) continue;
+        const frame = new THREE.Object3D();
+        frame.position.set(...jd.xyz);
+        if (jd.rpy[0] || jd.rpy[1] || jd.rpy[2])
+          frame.rotation.set(jd.rpy[0], jd.rpy[1], jd.rpy[2]);
+        parentFrame.add(frame);
+        linkFrames[jd.child] = frame;
+        if (jd.type === 'revolute')
+          jointObjects[jd.name] = { frame, axis: new THREE.Vector3(...jd.axis) };
+      }
+
+      // Load STL meshes with progress tracking
+      const sharedMat = new THREE.MeshLambertMaterial({ color: 0xc8d0dc });
+      const loader = new THREE.STLLoader();
+      const stlEntries = Object.entries(linkVisuals).filter(([n]) => linkFrames[n]);
+      const stlTotal = stlEntries.length;
+      let stlLoaded = 0;
+      if (stlTotal === 0) { hideProgress(); }
+
+      function updateStlProgress() {
+        stlLoaded++;
+        const pct = Math.round(stlLoaded / stlTotal * 100);
+        setProgress(pct, `Loading robot mesh... (${stlLoaded}/${stlTotal})`);
+        if (stlLoaded >= stlTotal) {
+          hideProgress();
+          setStatus('loading', 'Loading AI model...');
+        }
+      }
+
+      for (const [linkName, lv] of stlEntries) {
+        const frame = linkFrames[linkName];
+        loader.load(lv.url, (geo) => {
+          const mesh = new THREE.Mesh(geo, sharedMat);
+          mesh.scale.set(...lv.scale);
+          mesh.position.set(...lv.xyz);
+          if (lv.rpy[0] || lv.rpy[1] || lv.rpy[2])
+            mesh.rotation.set(lv.rpy[0], lv.rpy[1], lv.rpy[2]);
+          frame.add(mesh);
+          updateStlProgress();
+        }, undefined, (e) => { console.warn('[Demo] STL load failed:', lv.url, e); updateStlProgress(); });
+      }
+
+      updateRobotJoints();
+    }
+
+    function updateRobotJoints() {
+      ID_TO_JOINT.forEach((jname, idx) => {
+        const jo = jointObjects[jname];
+        if (!jo) return;
+        jo.frame.quaternion.setFromAxisAngle(jo.axis, jv[idx]);
+      });
+    }
+
+    async function loadAndBuildRobot() {
+      try {
+        const resp = await fetch('static/urdf/skeleton.urdf');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const text = await resp.text();
+        const xml  = new DOMParser().parseFromString(text, 'text/xml');
+        buildRobot(xml);
+        // STL loading is async; wait for all meshes via a polling promise
+        return new Promise(resolve => {
+          const check = setInterval(() => {
+            // stlLoaded/stlTotal are set inside buildRobot scope — resolve when STL progress bar hides
+            const p = document.getElementById('load-progress');
+            if (!p || p.style.display === 'none') { clearInterval(check); resolve(); }
+          }, 200);
+          // Fallback: resolve after 30s
+          setTimeout(() => { clearInterval(check); resolve(); }, 30000);
+        });
+      } catch(e) {
+        console.warn('[Demo] URDF load failed:', e);
+        hideProgress();
+      }
+    }
+
+    /* ---- ONNX ---- */
+    async function tryLoad() {
+      setStatus('loading', 'Loading AI model...');
+      try {
+        if (typeof ort === 'undefined') throw new Error('no ort');
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/';
+
+        // Fetch with download progress
+        const resp = await fetch('static/models/series_model_best_quant.onnx');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const contentLength = resp.headers.get('Content-Length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let received = 0;
+        showProgress();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          if (total > 0) {
+            const pct = Math.round(received / total * 100);
+            setProgress(pct, `Downloading AI model... ${pct}% (${(received/1048576).toFixed(1)} / ${(total/1048576).toFixed(1)} MB)`);
+          } else {
+            setProgress(50, `Downloading AI model... ${(received/1048576).toFixed(1)} MB received`);
+          }
+        }
+        hideProgress();
+        setStatus('loading', 'Initializing AI model...');
+        const buf = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) { buf.set(chunk, offset); offset += chunk.length; }
+        session = await ort.InferenceSession.create(buf.buffer);
+        modelLoaded = true;
+        setStatus('ready', 'Model ready ✓');
+      } catch (e) {
+        hideProgress();
+        console.error('[Demo] Model load failed:', e);
+        const isFileProtocol = location.protocol === 'file:';
+        setStatus('demo', isFileProtocol
+          ? 'Demo mode (serve via HTTP to load model)'
+          : `Demo mode (${e.message})`);
+      }
+      update();
+    }
+
+    async function runONNX(j) {
+      const flat = new Float32Array(16);
+      flat.set(j, 0); flat.set(j, 8); // DEQUE_SIZE=2: repeat current frame
+      const name = session.inputNames[0];
+      const res = await session.run({ [name]: new ort.Tensor('float32', flat, [1, 16]) });
+      return res[session.outputNames[0]].data;
+    }
+
+    /* ---- UPDATE ---- */
+    async function update() {
+      if (!modelLoaded || busy) return;
+      busy = true;
+      try {
+        const out = await runONNX(jv);
+        // output order: body (0..575), right arm (576..1215), left arm (1216..1855) × 3 floats each
+        setCloud(bodyGeo,  out.slice(0,                N_BODY*3));
+        setCloud(rightGeo, out.slice(N_BODY*3,         (N_BODY+N_ARM)*3));
+        setCloud(leftGeo,  out.slice((N_BODY+N_ARM)*3, (N_BODY+2*N_ARM)*3));
+        pointCloudReady = true;
+        updateContactHighlight();
+        sendSkinPointCloud();
+      } finally { busy = false; }
+    }
+
+    const DEFAULT_JV = [0, -0.35, 0, 0, 0, 0.35, 0, 0]; // matches node.default()
+    function reset() {
+      JOINTS.forEach(({id}) => {
+        jv[id] = DEFAULT_JV[id];
+        const sl = document.getElementById(`slider-${id}`), vl = document.getElementById(`val-${id}`);
+        if (sl) sl.value = jv[id];
+        if (vl) vl.textContent = Math.round(jv[id] * 180 / Math.PI) + '°';
+      });
+      updateRobotJoints();
+      sendSkinJointState();
+      update();
+    }
+
+    function setStatus(cls, txt) {
+      const el=document.getElementById('model-status'), tx=document.getElementById('status-text');
+      if (el) el.className=`model-status ${cls}`; if (tx) tx.textContent=txt;
+    }
+    function showProgress() {
+      const p = document.getElementById('load-progress');
+      if (p) p.style.display = 'block';
+    }
+    function hideProgress() {
+      const p = document.getElementById('load-progress');
+      if (p) p.style.display = 'none';
+    }
+    function setProgress(pct, detail) {
+      showProgress();
+      const bar = document.getElementById('load-bar');
+      const det = document.getElementById('load-detail');
+      if (bar) bar.style.width = pct + '%';
+      if (det) det.textContent = detail;
+    }
+
+    /* ---- SCRIPT LOADER ---- */
+    function loadScript(src, cb) {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = cb;
+      s.onerror = cb; // continue even on CDN error
+      document.head.appendChild(s);
+    }
+
+    /* ---- BOOT ---- */
+    function boot() {
+      setStatus('loading', 'Loading 3D engine...');
+
+      loadScript('https://unpkg.com/three@0.128.0/build/three.min.js', function () {
+        loadScript('https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js', function () {
+        loadScript('https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js', function () {
+          if (typeof THREE === 'undefined') {
+            setStatus('demo', 'Failed to load Three.js'); return;
+          }
+
+          initThree();
+
+          JOINTS.forEach(({id}) => {
+            const sl=document.getElementById(`slider-${id}`), vl=document.getElementById(`val-${id}`);
+            if (sl) sl.addEventListener('input', function() {
+              jv[id]=parseFloat(this.value);
+              if (vl) vl.textContent=Math.round(jv[id]*180/Math.PI)+'°';
+              updateRobotJoints();
+              sendSkinJointState();
+              update();
+            });
+          });
+          document.getElementById('reset-btn').addEventListener('click', reset);
+
+          const psSl = document.getElementById('point-size-slider');
+          const psVl = document.getElementById('point-size-val');
+          psSl.addEventListener('input', function() {
+            const s = parseFloat(this.value);
+            psVl.textContent = s.toFixed(3);
+            if (bodyMat) { bodyMat.size = s; leftMat.size = s; rightMat.size = s; }
+          });
+
+          // Load URDF skeleton + STL meshes, then load ONNX model
+          setStatus('loading', 'Loading robot mesh...');
+          setProgress(0, 'Fetching URDF...');
+          showProgress();
+          loadAndBuildRobot().then(() => {
+            loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js', function () {
+              tryLoad();
+            });
+          });
+        });
+        });
+      });
+    }
+
+    if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  })();
+  </script>
+</section>
+<!-- End Interactive Point Cloud Demo -->
+
+<!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <div class="bibtex-header">
+        <h2 class="title">BibTeX</h2>
+        <button class="copy-bibtex-btn" onclick="copyBibTeX()" title="Copy BibTeX to clipboard">
+          <i class="fas fa-copy"></i>
+          <span class="copy-text">Copy</span>
+        </button>
+      </div>
+      <pre id="bibtex-code"><code>@article{Park2026BaymaxSkin,
+  title={Inflatable Whole-Body Robotic Skin with Internal Time-of-Flight (ToF) Depth Sensing and Kinematics-Based Point-Cloud Prediction},
+  author={Park, Juhee and Kim, Sunoo and Bang, Yunseong and Kang, Sangjin and Kim, Joohyung and Kim, Jung and Park, Kyungseo},
+  booktitle={Proceedings of the IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  year={2026},
+  url={https://williamsunookim.github.io/BaymaxSkin}
+}
+</code></pre>
+    </div>
+</section>
+<!--End BibTex citation -->
+
+
+  <footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+
+          <p>
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+            You are free to borrow the source code of this website, we just ask that you link back to this page in the footer. <br> This website is licensed under a <a rel="license"  href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Statcounter tracking code -->
+  
+<!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
+
+    <!-- End of Statcounter Code -->
+
+  </body>
+  </html>
