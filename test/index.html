@@ -569,6 +569,7 @@
     let busy = false;
     let pointCloudReady = false;
     let activeSkinPress = null;
+    let activePointCloudDent = null;
     let jointObjects = {}; // urdf joint name -> { frame: Object3D, axis: Vector3 }
     const skinFrame = document.getElementById('skin-viewer');
     const skinViewerHint = document.getElementById('skin-viewer-hint');
@@ -621,7 +622,11 @@
                 point: event.data.point,
                 pointIndices: Array.isArray(event.data.pointIndices)
                   ? event.data.pointIndices
-                  : null
+                  : null,
+                pointStrengths: Array.isArray(event.data.pointStrengths)
+                  ? event.data.pointStrengths
+                  : null,
+                pointOffset: event.data.pointOffset
               }
             : null;
           updateContactHighlight();
@@ -705,8 +710,54 @@
       a.array.set(arr); a.needsUpdate = true;
     }
 
+    function restorePointCloudDent() {
+      if (!activePointCloudDent) return;
+
+      const { attribute, pointIndices, originalPositions } = activePointCloudDent;
+      for (let i = 0; i < pointIndices.length; i++) {
+        const targetOffset = pointIndices[i] * 3;
+        const sourceOffset = i * 3;
+        attribute.array[targetOffset] = originalPositions[sourceOffset];
+        attribute.array[targetOffset + 1] = originalPositions[sourceOffset + 1];
+        attribute.array[targetOffset + 2] = originalPositions[sourceOffset + 2];
+      }
+      attribute.needsUpdate = true;
+      activePointCloudDent = null;
+    }
+
+    function applyPointCloudDent(geometry, selectedPoints, pointOffset) {
+      if (
+        !selectedPoints.length ||
+        !pointOffset ||
+        !Number.isFinite(pointOffset.x) ||
+        !Number.isFinite(pointOffset.y) ||
+        !Number.isFinite(pointOffset.z)
+      ) return;
+
+      const attribute = geometry.getAttribute('position');
+      const originalPositions = new Float32Array(selectedPoints.length * 3);
+      const pointIndices = new Int32Array(selectedPoints.length);
+
+      for (let i = 0; i < selectedPoints.length; i++) {
+        const { pointIndex, strength } = selectedPoints[i];
+        const sourceOffset = pointIndex * 3;
+        const savedOffset = i * 3;
+        pointIndices[i] = pointIndex;
+        originalPositions[savedOffset] = attribute.array[sourceOffset];
+        originalPositions[savedOffset + 1] = attribute.array[sourceOffset + 1];
+        originalPositions[savedOffset + 2] = attribute.array[sourceOffset + 2];
+        attribute.array[sourceOffset] += pointOffset.x * strength;
+        attribute.array[sourceOffset + 1] += pointOffset.y * strength;
+        attribute.array[sourceOffset + 2] += pointOffset.z * strength;
+      }
+
+      attribute.needsUpdate = true;
+      activePointCloudDent = { attribute, pointIndices, originalPositions };
+    }
+
     function updateContactHighlight() {
       if (!contactGeo) return;
+      restorePointCloudDent();
       contactGeo.setDrawRange(0, 0);
       if (!activeSkinPress || !modelLoaded) return;
 
@@ -724,27 +775,43 @@
       const highlightPositions = contactGeo.getAttribute('position');
 
       if (activeSkinPress.pointIndices?.length) {
-        let count = 0;
-        for (const pointIndex of activeSkinPress.pointIndices) {
+        const selectedPoints = [];
+        for (let i = 0; i < activeSkinPress.pointIndices.length; i++) {
+          const pointIndex = activeSkinPress.pointIndices[i];
           if (
-            count >= requestedCount ||
+            selectedPoints.length >= requestedCount ||
             !Number.isInteger(pointIndex) ||
             pointIndex < 0 ||
             pointIndex * 3 + 2 >= candidateValues.length
           ) continue;
 
-          const sourceIndex = pointIndex * 3;
-          const targetIndex = count * 3;
+          const requestedStrength = activeSkinPress.pointStrengths?.[i];
+          selectedPoints.push({
+            pointIndex,
+            strength: Number.isFinite(requestedStrength)
+              ? Math.max(0, Math.min(1, requestedStrength))
+              : 1
+          });
+        }
+
+        applyPointCloudDent(
+          candidateGeometry,
+          selectedPoints,
+          activeSkinPress.pointOffset
+        );
+
+        for (let i = 0; i < selectedPoints.length; i++) {
+          const sourceIndex = selectedPoints[i].pointIndex * 3;
+          const targetIndex = i * 3;
           highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
           highlightPositions.array[targetIndex + 1] =
             candidateValues[sourceIndex + 1];
           highlightPositions.array[targetIndex + 2] =
             candidateValues[sourceIndex + 2];
-          count++;
         }
 
         highlightPositions.needsUpdate = true;
-        contactGeo.setDrawRange(0, count);
+        contactGeo.setDrawRange(0, selectedPoints.length);
         return;
       }
 
@@ -813,16 +880,26 @@
         const dy = normalizedY - target.y;
         const dz = normalizedZ - target.z;
         nearest.push({
-          index: i,
+          pointIndex: i / 3,
           distance: dx * dx + dy * dy * 1.25 + dz * dz
         });
       }
 
       nearest.sort((a, b) => a.distance - b.distance);
       const count = Math.min(requestedCount, nearest.length);
+      const selectedPoints = nearest.slice(0, count).map((entry, index) => ({
+        pointIndex: entry.pointIndex,
+        strength: 1 - 0.45 * index / Math.max(count - 1, 1)
+      }));
+
+      applyPointCloudDent(
+        candidateGeometry,
+        selectedPoints,
+        activeSkinPress.pointOffset
+      );
 
       for (let i = 0; i < count; i++) {
-        const sourceIndex = nearest[i].index;
+        const sourceIndex = selectedPoints[i].pointIndex * 3;
         const targetIndex = i * 3;
         highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
         highlightPositions.array[targetIndex + 1] = candidateValues[sourceIndex + 1];
@@ -1027,13 +1104,14 @@
       busy = true;
       try {
         const out = await runONNX(jv);
+        restorePointCloudDent();
         // output order: body (0..575), right arm (576..1215), left arm (1216..1855) × 3 floats each
         setCloud(bodyGeo,  out.slice(0,                N_BODY*3));
         setCloud(rightGeo, out.slice(N_BODY*3,         (N_BODY+N_ARM)*3));
         setCloud(leftGeo,  out.slice((N_BODY+N_ARM)*3, (N_BODY+2*N_ARM)*3));
         pointCloudReady = true;
-        updateContactHighlight();
         sendSkinPointCloud();
+        updateContactHighlight();
       } finally { busy = false; }
     }
 

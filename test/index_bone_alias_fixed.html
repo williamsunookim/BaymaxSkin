@@ -104,8 +104,13 @@
 
     const MODEL_URL = './Baymax_RealSize_Opaque_test5.glb';
     const PARENT_ORIGIN = location.origin === 'null' ? '*' : location.origin;
-    const CLICK_RADIUS_WORLD = 0.13;
-    const CLICK_DEPTH_WORLD = 0.18;
+    const CLICK_RADIUS_WORLD = 0.20;
+    const CLICK_DEPTH_WORLD = 0.15;
+    const POINT_CLOUD_CLICK_DEPTH_WORLD = {
+      body: 0.35,
+      left: 0.15,
+      right: 0.15
+    };
     const CLOUD_POSITION = new THREE.Vector3(-0.019881, -0.860432, -0.001793);
     const CLOUD_SCALE = new THREE.Vector3(1.494240, 2.091364, 1.444681);
     const HIGHLIGHT_POINT_COUNTS = { body: 12, left: 20, right: 20 };
@@ -783,10 +788,182 @@
       }
 
       const limit = HIGHLIGHT_POINT_COUNTS[region];
-      return [...strengthByPointIndex.entries()]
+      const selectedPoints = [...strengthByPointIndex.entries()]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, limit)
-        .map(([pointIndex]) => pointIndex);
+        .slice(0, limit);
+      return {
+        pointIndices: selectedPoints.map(([pointIndex]) => pointIndex),
+        pointStrengths: selectedPoints.map(([, strength]) => strength)
+      };
+    }
+
+    function getSmallestCovarianceEigenvector(
+      xx, xy, xz,
+      yy, yz,
+      zz
+    ) {
+      const offDiagonalEnergy = xy * xy + xz * xz + yz * yz;
+      if (offDiagonalEnergy < 1e-12) {
+        if (xx <= yy && xx <= zz) return new THREE.Vector3(1, 0, 0);
+        if (yy <= zz) return new THREE.Vector3(0, 1, 0);
+        return new THREE.Vector3(0, 0, 1);
+      }
+
+      const meanEigenvalue = (xx + yy + zz) / 3;
+      const centeredXX = xx - meanEigenvalue;
+      const centeredYY = yy - meanEigenvalue;
+      const centeredZZ = zz - meanEigenvalue;
+      const scale = Math.sqrt(
+        (
+          centeredXX * centeredXX +
+          centeredYY * centeredYY +
+          centeredZZ * centeredZZ +
+          2 * offDiagonalEnergy
+        ) / 6
+      );
+      if (scale < 1e-10) return null;
+
+      const bXX = centeredXX / scale;
+      const bXY = xy / scale;
+      const bXZ = xz / scale;
+      const bYY = centeredYY / scale;
+      const bYZ = yz / scale;
+      const bZZ = centeredZZ / scale;
+      const determinant =
+        bXX * (bYY * bZZ - bYZ * bYZ) -
+        bXY * (bXY * bZZ - bYZ * bXZ) +
+        bXZ * (bXY * bYZ - bYY * bXZ);
+      const angle = Math.acos(
+        THREE.MathUtils.clamp(determinant * 0.5, -1, 1)
+      ) / 3;
+      const smallestEigenvalue = meanEigenvalue +
+        2 * scale * Math.cos(angle + 2 * Math.PI / 3);
+
+      const row0 = new THREE.Vector3(
+        xx - smallestEigenvalue,
+        xy,
+        xz
+      );
+      const row1 = new THREE.Vector3(
+        xy,
+        yy - smallestEigenvalue,
+        yz
+      );
+      const row2 = new THREE.Vector3(
+        xz,
+        yz,
+        zz - smallestEigenvalue
+      );
+      const candidates = [
+        new THREE.Vector3().crossVectors(row0, row1),
+        new THREE.Vector3().crossVectors(row0, row2),
+        new THREE.Vector3().crossVectors(row1, row2)
+      ];
+      const normal = candidates.reduce((best, candidate) =>
+        candidate.lengthSq() > best.lengthSq() ? candidate : best
+      );
+
+      return normal.lengthSq() > 1e-12 ? normal.normalize() : null;
+    }
+
+    function fitPointCloudPlaneNormal(region, mappedPoints) {
+      const pointIndices = mappedPoints?.pointIndices;
+      if (!pointIndices || pointIndices.length < 3) return null;
+
+      const geometry = region === 'left'
+        ? predictedLeftGeo
+        : region === 'right'
+          ? predictedRightGeo
+          : predictedBodyGeo;
+      const positions = geometry.getAttribute('position');
+      if (!positions) return null;
+
+      predictedCloudRoot.updateMatrixWorld(true);
+      const samples = [];
+      const centroid = new THREE.Vector3();
+      let totalWeight = 0;
+
+      for (let i = 0; i < pointIndices.length; i++) {
+        const pointIndex = pointIndices[i];
+        if (
+          !Number.isInteger(pointIndex) ||
+          pointIndex < 0 ||
+          pointIndex >= positions.count
+        ) continue;
+
+        const strength = mappedPoints.pointStrengths?.[i];
+        const weight = 0.25 + 0.75 * (
+          Number.isFinite(strength)
+            ? THREE.MathUtils.clamp(strength, 0, 1)
+            : 1
+        );
+        const point = new THREE.Vector3()
+          .fromBufferAttribute(positions, pointIndex)
+          .applyMatrix4(predictedCloudRoot.matrixWorld);
+        samples.push({ point, weight });
+        centroid.addScaledVector(point, weight);
+        totalWeight += weight;
+      }
+
+      if (samples.length < 3 || totalWeight <= 0) return null;
+      centroid.multiplyScalar(1 / totalWeight);
+
+      let xx = 0, xy = 0, xz = 0;
+      let yy = 0, yz = 0, zz = 0;
+      for (const { point, weight } of samples) {
+        const dx = point.x - centroid.x;
+        const dy = point.y - centroid.y;
+        const dz = point.z - centroid.z;
+        xx += weight * dx * dx;
+        xy += weight * dx * dy;
+        xz += weight * dx * dz;
+        yy += weight * dy * dy;
+        yz += weight * dy * dz;
+        zz += weight * dz * dz;
+      }
+
+      return getSmallestCovarianceEigenvector(xx, xy, xz, yy, yz, zz);
+    }
+
+    function getPointCloudDentOffset(intersection, region, mappedPoints) {
+      if (!predictedCloudAligned || !intersection.face) return null;
+
+      const mesh = intersection.object;
+      const { a: indexA, b: indexB, c: indexC } = intersection.face;
+      const pointA = new THREE.Vector3();
+      const pointB = new THREE.Vector3();
+      const pointC = new THREE.Vector3();
+      mesh.getVertexPosition(indexA, pointA).applyMatrix4(mesh.matrixWorld);
+      mesh.getVertexPosition(indexB, pointB).applyMatrix4(mesh.matrixWorld);
+      mesh.getVertexPosition(indexC, pointC).applyMatrix4(mesh.matrixWorld);
+
+      const meshOutwardNormal = new THREE.Triangle(
+        pointA,
+        pointB,
+        pointC
+      ).getNormal(new THREE.Vector3());
+      if (meshOutwardNormal.lengthSq() < 1e-8) return null;
+
+      let outwardNormal = meshOutwardNormal;
+      if (region !== 'body') {
+        const planeNormal = fitPointCloudPlaneNormal(region, mappedPoints);
+        if (planeNormal) {
+          if (planeNormal.dot(meshOutwardNormal) < 0) planeNormal.negate();
+          outwardNormal = planeNormal;
+        }
+      }
+
+      predictedCloudRoot.updateMatrixWorld(true);
+      const inverseCloudMatrix = predictedCloudRoot.matrixWorld.clone().invert();
+      const cloudStart = intersection.point.clone().applyMatrix4(inverseCloudMatrix);
+      const clickDepth = POINT_CLOUD_CLICK_DEPTH_WORLD[region];
+      if (!Number.isFinite(clickDepth)) return null;
+      const cloudEnd = intersection.point.clone()
+        .addScaledVector(outwardNormal, -clickDepth)
+        .applyMatrix4(inverseCloudMatrix);
+      const offset = cloudEnd.sub(cloudStart);
+
+      return { x: offset.x, y: offset.y, z: offset.z };
     }
 
     function addDent(intersection) {
@@ -817,7 +994,12 @@
         radius,
         /arm/i.test(mesh.name)
       );
-      const pointIndices = getMappedPointIndices(mesh, region, dentVertices);
+      const mappedPoints = getMappedPointIndices(mesh, region, dentVertices);
+      const pointOffset = getPointCloudDentOffset(
+        intersection,
+        region,
+        mappedPoints
+      );
       deformation.activeDent = {
         depth: CLICK_DEPTH_WORLD / scale,
         ...dentVertices
@@ -831,7 +1013,9 @@
         mesh: mesh.name,
         region,
         point,
-        pointIndices
+        pointIndices: mappedPoints?.pointIndices || null,
+        pointStrengths: mappedPoints?.pointStrengths || null,
+        pointOffset
       });
       return true;
     }
