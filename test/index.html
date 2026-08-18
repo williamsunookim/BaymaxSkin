@@ -62,7 +62,7 @@
   <link rel="preconnect" href="https://ajax.googleapis.com">
   <link rel="preconnect" href="https://documentcloud.adobe.com">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preload" href="static/models/series_model_best_quant.onnx" as="fetch" crossorigin="anonymous">
+  <link rel="preload" href="static/models/new_figure_model_best_quant.onnx" as="fetch" crossorigin="anonymous">
 
 
   <title>Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing | IROS 2026</title>
@@ -460,7 +460,7 @@
           <div id="load-detail" style="font-size:0.68rem; color:#aaa; margin-top:3px; line-height:1.4;"></div>
         </div>
         <p style="font-size:0.68rem; color:#aaaaaa; margin-bottom:0.75rem; line-height:1.5;">
-          Initial load may take <strong>1–2 minutes</strong> — the AI model (~30 MB) and 3D meshes are fetched from this server.
+          Initial load may take <strong>1–2 minutes</strong> — the AI model (~6 MB) and 3D meshes are fetched from this server.
         </p>
 
         <!-- <div class="joint-group">
@@ -513,6 +513,10 @@
           <div class="legend-item"><span class="legend-dot" style="background:#e53935;"></span>R Arm</div>
           <div class="legend-item"><span class="legend-dot" style="background:#ffc107;"></span>Pressed area</div>
         </div>
+
+        <p class="onnx-note">
+          Note: The point-cloud prediction model used in this interactive demo differs from the model reported in the paper.
+        </p>
 
       </div>
 
@@ -1051,7 +1055,7 @@
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/';
 
         // Fetch with download progress
-        const resp = await fetch('static/models/series_model_best_quant.onnx');
+        const resp = await fetch('static/models/new_figure_model_best_quant.onnx');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const contentLength = resp.headers.get('Content-Length');
         const total = contentLength ? parseInt(contentLength, 10) : 0;
