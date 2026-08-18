@@ -111,6 +111,8 @@
       left: 0.15,
       right: 0.15
     };
+    const POINT_CLOUD_DENT_SCALE = 0.35;
+    const POINT_CLOUD_PLANE_NORMAL_BLEND = 0.10;
     const CLOUD_POSITION = new THREE.Vector3(-0.019881, -0.860432, -0.001793);
     const CLOUD_SCALE = new THREE.Vector3(1.494240, 2.091364, 1.444681);
     const HIGHLIGHT_POINT_COUNTS = { body: 12, left: 20, right: 20 };
@@ -944,12 +946,16 @@
       ).getNormal(new THREE.Vector3());
       if (meshOutwardNormal.lengthSq() < 1e-8) return null;
 
-      let outwardNormal = meshOutwardNormal;
+      const outwardNormal = meshOutwardNormal.clone();
       if (region !== 'body') {
         const planeNormal = fitPointCloudPlaneNormal(region, mappedPoints);
         if (planeNormal) {
           if (planeNormal.dot(meshOutwardNormal) < 0) planeNormal.negate();
-          outwardNormal = planeNormal;
+          // Keep the point-cloud motion almost parallel to the mesh dent while
+          // retaining a small amount of point-cloud surface smoothing.
+          outwardNormal
+            .lerp(planeNormal, POINT_CLOUD_PLANE_NORMAL_BLEND)
+            .normalize();
         }
       }
 
@@ -961,7 +967,22 @@
       const cloudEnd = intersection.point.clone()
         .addScaledVector(outwardNormal, -clickDepth)
         .applyMatrix4(inverseCloudMatrix);
-      const offset = cloudEnd.sub(cloudStart);
+      const calibratedMagnitude = cloudEnd
+        .sub(cloudStart)
+        .length() * POINT_CLOUD_DENT_SCALE;
+
+      // The visible point cloud uses the same -90-degree rotation as the hidden
+      // calibrated cloud, but not its non-uniform scale. Convert rotation only
+      // so that scale calibration cannot skew the displayed dent direction.
+      const inverseCloudRotation = predictedCloudRoot
+        .getWorldQuaternion(new THREE.Quaternion())
+        .invert();
+      const offset = outwardNormal
+        .clone()
+        .negate()
+        .applyQuaternion(inverseCloudRotation)
+        .normalize()
+        .multiplyScalar(calibratedMagnitude);
 
       return { x: offset.x, y: offset.y, z: offset.z };
     }
