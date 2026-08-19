@@ -62,7 +62,7 @@
   <link rel="preconnect" href="https://ajax.googleapis.com">
   <link rel="preconnect" href="https://documentcloud.adobe.com">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preload" href="static/models/series_model_best_quant.onnx" as="fetch" crossorigin="anonymous">
+  <link rel="preload" href="static/models/new_figure_model_best_quant.onnx" as="fetch" crossorigin="anonymous">
 
 
   <title>Inflatable Whole-Body Robotic Skin with Internal ToF Depth Sensing | IROS 2026</title>
@@ -349,7 +349,6 @@
 <section class="section hero is-light" id="interactive-demo">
   <style>
     .demo-wrapper { display: flex; gap: 1.5rem; align-items: flex-start; }
-    @media (max-width: 768px) { .demo-wrapper { flex-direction: column; } }
     .demo-controls {
       flex: 0 0 280px;
       background: #ffffff;
@@ -358,16 +357,47 @@
       border: 1px solid #dbdbdb;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
+    .demo-viewers {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
     .demo-viewer-wrap {
-      flex: 1; min-width: 0; position: relative;
+      min-width: 0; position: relative;
       border-radius: 12px; overflow: hidden;
       border: 1px solid #dbdbdb;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     #demo-canvas { display: block; width: 100% !important; height: 450px !important; }
+    #skin-viewer {
+      display: block;
+      width: 100%;
+      height: 450px;
+      border: 0;
+      background: #f5f5f5;
+    }
+    .viewer-label {
+      position: absolute; z-index: 2; top: 10px; left: 12px;
+      padding: 4px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.88); color: #4a4a4a;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      font-size: 0.68rem; font-weight: 600; pointer-events: none;
+    }
     .viewer-hint {
       position: absolute; bottom: 10px; right: 12px;
-      font-size: 0.7rem; color: #aaaaaa; pointer-events: none;
+      padding: 3px 6px; border-radius: 4px;
+      background: rgba(255,255,255,0.78);
+      font-size: 0.68rem; color: #888888; pointer-events: none;
+    }
+    @media (max-width: 1023px) {
+      .demo-wrapper { flex-direction: column; }
+      .demo-controls { width: 100%; flex-basis: auto; }
+      .demo-viewers { width: 100%; }
+    }
+    @media (max-width: 640px) {
+      .demo-viewers { grid-template-columns: 1fr; }
     }
     .model-status {
       display: flex; align-items: center; gap: 8px;
@@ -403,17 +433,17 @@
     }
     .demo-btn:hover { background: #f5f5f5; border-color: #b5b5b5; }
     .demo-btn.active { background:#effaf5; color:#257953; border-color:#48c78e; }
-    .demo-legend { display:flex; gap:1rem; margin-top:0.5rem; }
+    .demo-legend { display:flex; flex-wrap:wrap; gap:0.5rem 1rem; margin-top:0.5rem; }
     .legend-item { display:flex; align-items:center; gap:5px; font-size:0.72rem; color:#7a7a7a; }
     .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
     .onnx-note { font-size:0.68rem; color:#aaaaaa; margin-top:1rem; line-height:1.5; }
     .onnx-note code { background:#f5f5f5; padding:1px 4px; border-radius:3px; font-family:monospace; color:#363636; }
   </style>
 
-  <div class="container is-max-desktop">
+  <div class="container is-widescreen">
     <h2 class="title is-3 has-text-centered">Interactive Demo</h2>
     <p class="subtitle is-6 has-text-centered" style="margin-bottom:1.75rem;">
-      Adjust joint angles to see the AI-predicted nominal 3D whole-body point cloud in real time.
+      Move the joint sliders to control both models. Press and hold the body or arms to indent the skin.
     </p>
     <div class="demo-wrapper">
 
@@ -430,7 +460,7 @@
           <div id="load-detail" style="font-size:0.68rem; color:#aaa; margin-top:3px; line-height:1.4;"></div>
         </div>
         <p style="font-size:0.68rem; color:#aaaaaa; margin-bottom:0.75rem; line-height:1.5;">
-          Initial load may take <strong>1–2 minutes</strong> — the AI model (~30 MB) and 3D meshes are fetched from this server.
+          Initial load may take <strong>1–2 minutes</strong> — the AI model (~6 MB) and 3D meshes are fetched from this server.
         </p>
 
         <!-- <div class="joint-group">
@@ -481,14 +511,36 @@
           <div class="legend-item"><span class="legend-dot" style="background:#888888;"></span>Body</div>
           <div class="legend-item"><span class="legend-dot" style="background:#3273dc;"></span>L Arm</div>
           <div class="legend-item"><span class="legend-dot" style="background:#e53935;"></span>R Arm</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ffc107;"></span>Pressed area</div>
         </div>
+
+        <p class="onnx-note">
+          Note: The point-cloud prediction model used in this interactive demo differs from the model reported in the paper.
+        </p>
 
       </div>
 
-      <!-- 3D Viewer -->
-      <div class="demo-viewer-wrap">
-        <canvas id="demo-canvas"></canvas>
-        <div class="viewer-hint">Drag to rotate · Scroll to zoom</div>
+      <div class="demo-viewers">
+        <!-- URDF + point-cloud viewer -->
+        <div class="demo-viewer-wrap">
+          <span class="viewer-label">URDF + predicted surface</span>
+          <canvas id="demo-canvas"></canvas>
+          <div class="viewer-hint">Drag to rotate · Scroll to zoom</div>
+        </div>
+
+        <!-- Joint-synchronized clickable skin viewer -->
+        <div class="demo-viewer-wrap">
+          <span class="viewer-label">Interactive skin</span>
+          <iframe
+            id="skin-viewer"
+            src="index_bone_alias_fixed.html"
+            title="Joint-synchronized clickable Baymax skin"
+            loading="lazy"
+          ></iframe>
+          <div class="viewer-hint" id="skin-viewer-hint">
+            Hold body/arms to press · Drag to rotate
+          </div>
+        </div>
       </div>
 
     </div>
@@ -502,13 +554,13 @@
     // Limits from skeleton_v3 URDF
     // input order: [LSP(0), LSR(1), RSP(2), LSY(3), LE(4), RSR(5), RSY(6), RE(7)]
     const JOINTS = [
-      {id:0, min:-1.57, max: 0.00}, // LSP
-      {id:1, min:-1.57, max: 0.00}, // LSR
-      {id:2, min: 0.00, max: 1.57}, // RSP
-      {id:3, min:-0.80, max: 1.57}, // LSY
+      {id:0, min:-1.04, max: 0.00}, // LSP
+      {id:1, min:-1.04, max: 0.00}, // LSR
+      {id:2, min: 0.00, max: 1.04}, // RSP
+      {id:3, min:-0.80, max: 1.04}, // LSY
       {id:4, min:-0.785, max: 0.00}, // LE
-      {id:5, min: 0.00, max: 1.57}, // RSR
-      {id:6, min:-1.57, max: 0.80}, // RSY
+      {id:5, min: 0.00, max: 1.04}, // RSR
+      {id:6, min:-1.04, max: 0.80}, // RSY
       {id:7, min: 0.00, max: 0.785}, // RE
     ];
 
@@ -516,9 +568,81 @@
     let jv = new Float32Array([0, -0.35, 0, 0, 0, 0.35, 0, 0]);
     let scene, camera, renderer, controls, bodyGeo, leftGeo, rightGeo;
     let bodyMat, leftMat, rightMat;
+    let contactGeo, contactMat;
     let session = null, modelLoaded = false;
     let busy = false;
+    let pointCloudReady = false;
+    let activeSkinPress = null;
+    let activePointCloudDent = null;
     let jointObjects = {}; // urdf joint name -> { frame: Object3D, axis: Vector3 }
+    const skinFrame = document.getElementById('skin-viewer');
+    const skinViewerHint = document.getElementById('skin-viewer-hint');
+    const CONTACT_POINT_COUNT = 20;
+    const BODY_CONTACT_POINT_COUNT = 12;
+
+    function sendSkinJointState() {
+      if (!skinFrame || !skinFrame.contentWindow) return;
+      const targetOrigin = location.origin === 'null' ? '*' : location.origin;
+      skinFrame.contentWindow.postMessage(
+        { type: 'baymax-joints', joints: Array.from(jv) },
+        targetOrigin
+      );
+    }
+
+    function sendSkinPointCloud() {
+      if (
+        !pointCloudReady ||
+        !skinFrame ||
+        !skinFrame.contentWindow ||
+        !bodyGeo ||
+        !leftGeo ||
+        !rightGeo
+      ) return;
+
+      const targetOrigin = location.origin === 'null' ? '*' : location.origin;
+      skinFrame.contentWindow.postMessage(
+        {
+          type: 'baymax-pointcloud',
+          body: bodyGeo.getAttribute('position').array,
+          left: leftGeo.getAttribute('position').array,
+          right: rightGeo.getAttribute('position').array
+        },
+        targetOrigin
+      );
+    }
+
+    if (skinFrame) {
+      skinFrame.addEventListener('load', sendSkinJointState);
+      window.addEventListener('message', (event) => {
+        if (event.source !== skinFrame.contentWindow) return;
+
+        if (event.data?.type === 'baymax-skin-ready') {
+          sendSkinJointState();
+          sendSkinPointCloud();
+        } else if (event.data?.type === 'baymax-skin-press') {
+          activeSkinPress = event.data.pressed
+            ? {
+                region: event.data.region,
+                point: event.data.point,
+                pointIndices: Array.isArray(event.data.pointIndices)
+                  ? event.data.pointIndices
+                  : null,
+                pointStrengths: Array.isArray(event.data.pointStrengths)
+                  ? event.data.pointStrengths
+                  : null,
+                pointOffset: event.data.pointOffset
+              }
+            : null;
+          updateContactHighlight();
+        } else if (event.data?.type === 'baymax-skin-view-lock') {
+          if (skinViewerHint) {
+            skinViewerHint.textContent = event.data.locked
+              ? 'Hold + drag to move the press · View locked'
+              : 'Hold body/arms to press · Drag to rotate';
+          }
+        }
+      });
+    }
 
     /* ---- THREE.JS ---- */
     function initThree() {
@@ -548,6 +672,18 @@
       bodyMat  = new THREE.PointsMaterial({color:0x888888, size:0.020});
       leftMat  = new THREE.PointsMaterial({color:0x3273dc, size:0.020});
       rightMat = new THREE.PointsMaterial({color:0xe53935, size:0.020});
+      contactGeo = new THREE.BufferGeometry();
+      contactGeo.setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(CONTACT_POINT_COUNT * 3), 3)
+      );
+      contactGeo.setDrawRange(0, 0);
+      contactMat = new THREE.PointsMaterial({
+        color: 0xffc107,
+        size: 0.045,
+        depthTest: false,
+        depthWrite: false
+      });
 
       // ROS2 is Z-up; rotate group -90° around X to convert to Three.js Y-up
       const pcGroup = new THREE.Group();
@@ -555,6 +691,9 @@
       pcGroup.add(new THREE.Points(bodyGeo,  bodyMat));
       pcGroup.add(new THREE.Points(leftGeo,  leftMat));
       pcGroup.add(new THREE.Points(rightGeo, rightMat));
+      const contactPoints = new THREE.Points(contactGeo, contactMat);
+      contactPoints.renderOrder = 10;
+      pcGroup.add(contactPoints);
       scene.add(pcGroup);
 
       window.addEventListener('resize', () => {
@@ -573,6 +712,206 @@
     function setCloud(geo, arr) {
       const a = geo.getAttribute('position');
       a.array.set(arr); a.needsUpdate = true;
+    }
+
+    function restorePointCloudDent() {
+      if (!activePointCloudDent) return;
+
+      const { attribute, pointIndices, originalPositions } = activePointCloudDent;
+      for (let i = 0; i < pointIndices.length; i++) {
+        const targetOffset = pointIndices[i] * 3;
+        const sourceOffset = i * 3;
+        attribute.array[targetOffset] = originalPositions[sourceOffset];
+        attribute.array[targetOffset + 1] = originalPositions[sourceOffset + 1];
+        attribute.array[targetOffset + 2] = originalPositions[sourceOffset + 2];
+      }
+      attribute.needsUpdate = true;
+      activePointCloudDent = null;
+    }
+
+    function applyPointCloudDent(geometry, selectedPoints, pointOffset) {
+      if (
+        !selectedPoints.length ||
+        !pointOffset ||
+        !Number.isFinite(pointOffset.x) ||
+        !Number.isFinite(pointOffset.y) ||
+        !Number.isFinite(pointOffset.z)
+      ) return;
+
+      const attribute = geometry.getAttribute('position');
+      const originalPositions = new Float32Array(selectedPoints.length * 3);
+      const pointIndices = new Int32Array(selectedPoints.length);
+
+      for (let i = 0; i < selectedPoints.length; i++) {
+        const { pointIndex, strength } = selectedPoints[i];
+        const sourceOffset = pointIndex * 3;
+        const savedOffset = i * 3;
+        pointIndices[i] = pointIndex;
+        originalPositions[savedOffset] = attribute.array[sourceOffset];
+        originalPositions[savedOffset + 1] = attribute.array[sourceOffset + 1];
+        originalPositions[savedOffset + 2] = attribute.array[sourceOffset + 2];
+        attribute.array[sourceOffset] += pointOffset.x * strength;
+        attribute.array[sourceOffset + 1] += pointOffset.y * strength;
+        attribute.array[sourceOffset + 2] += pointOffset.z * strength;
+      }
+
+      attribute.needsUpdate = true;
+      activePointCloudDent = { attribute, pointIndices, originalPositions };
+    }
+
+    function updateContactHighlight() {
+      if (!contactGeo) return;
+      restorePointCloudDent();
+      contactGeo.setDrawRange(0, 0);
+      if (!activeSkinPress || !modelLoaded) return;
+
+      const point = activeSkinPress.point;
+      const region = activeSkinPress.region;
+      const candidateGeometry = region === 'left'
+        ? leftGeo
+        : region === 'right'
+          ? rightGeo
+          : bodyGeo;
+      const candidateValues = candidateGeometry.getAttribute('position').array;
+      const requestedCount = region === 'body'
+        ? BODY_CONTACT_POINT_COUNT
+        : CONTACT_POINT_COUNT;
+      const highlightPositions = contactGeo.getAttribute('position');
+
+      if (activeSkinPress.pointIndices?.length) {
+        const selectedPoints = [];
+        for (let i = 0; i < activeSkinPress.pointIndices.length; i++) {
+          const pointIndex = activeSkinPress.pointIndices[i];
+          if (
+            selectedPoints.length >= requestedCount ||
+            !Number.isInteger(pointIndex) ||
+            pointIndex < 0 ||
+            pointIndex * 3 + 2 >= candidateValues.length
+          ) continue;
+
+          const requestedStrength = activeSkinPress.pointStrengths?.[i];
+          selectedPoints.push({
+            pointIndex,
+            strength: Number.isFinite(requestedStrength)
+              ? Math.max(0, Math.min(1, requestedStrength))
+              : 1
+          });
+        }
+
+        applyPointCloudDent(
+          candidateGeometry,
+          selectedPoints,
+          activeSkinPress.pointOffset
+        );
+
+        for (let i = 0; i < selectedPoints.length; i++) {
+          const sourceIndex = selectedPoints[i].pointIndex * 3;
+          const targetIndex = i * 3;
+          highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
+          highlightPositions.array[targetIndex + 1] =
+            candidateValues[sourceIndex + 1];
+          highlightPositions.array[targetIndex + 2] =
+            candidateValues[sourceIndex + 2];
+        }
+
+        highlightPositions.needsUpdate = true;
+        contactGeo.setDrawRange(0, selectedPoints.length);
+        return;
+      }
+
+      // Fallback used only if the one-time vertex correspondence is not ready yet.
+      if (
+        !point ||
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y) ||
+        !Number.isFinite(point.z)
+      ) return;
+
+      const allGeometries = [bodyGeo, leftGeo, rightGeo];
+      const bounds = {
+        minX: Infinity, maxX: -Infinity,
+        minY: Infinity, maxY: -Infinity,
+        minZ: Infinity, maxZ: -Infinity
+      };
+
+      for (const geometry of allGeometries) {
+        const values = geometry.getAttribute('position').array;
+        for (let i = 0; i < values.length; i += 3) {
+          // Point-cloud arrays are ROS Z-up; this matches pcGroup's -90° X rotation.
+          const x = values[i];
+          const y = values[i + 2];
+          const z = -values[i + 1];
+          bounds.minX = Math.min(bounds.minX, x);
+          bounds.maxX = Math.max(bounds.maxX, x);
+          bounds.minY = Math.min(bounds.minY, y);
+          bounds.maxY = Math.max(bounds.maxY, y);
+          bounds.minZ = Math.min(bounds.minZ, z);
+          bounds.maxZ = Math.max(bounds.maxZ, z);
+        }
+      }
+
+      const sizeX = bounds.maxX - bounds.minX;
+      const sizeY = bounds.maxY - bounds.minY;
+      const sizeZ = bounds.maxZ - bounds.minZ;
+      if (
+        !Number.isFinite(sizeX) ||
+        sizeX < 0.0001 ||
+        sizeY < 0.0001 ||
+        sizeZ < 0.0001
+      ) return;
+
+      const centerX = (bounds.minX + bounds.maxX) * 0.5;
+      const centerZ = (bounds.minZ + bounds.maxZ) * 0.5;
+
+      // GLB: X=left/right, Y=up, Z=front/back.
+      // Point-cloud viewer: X=front/back, Y=up, Z=left/right.
+      const target = {
+        x: point.x,
+        y: point.y,
+        z: point.z
+      };
+
+      const nearest = [];
+
+      for (let i = 0; i < candidateValues.length; i += 3) {
+        const x = candidateValues[i];
+        const y = candidateValues[i + 2];
+        const z = -candidateValues[i + 1];
+        const normalizedX = (x - centerX) / sizeX;
+        const normalizedY = (y - bounds.minY) / sizeY;
+        const normalizedZ = (z - centerZ) / sizeZ;
+        const dx = normalizedX - target.x;
+        const dy = normalizedY - target.y;
+        const dz = normalizedZ - target.z;
+        nearest.push({
+          pointIndex: i / 3,
+          distance: dx * dx + dy * dy * 1.25 + dz * dz
+        });
+      }
+
+      nearest.sort((a, b) => a.distance - b.distance);
+      const count = Math.min(requestedCount, nearest.length);
+      const selectedPoints = nearest.slice(0, count).map((entry, index) => ({
+        pointIndex: entry.pointIndex,
+        strength: 1 - 0.45 * index / Math.max(count - 1, 1)
+      }));
+
+      applyPointCloudDent(
+        candidateGeometry,
+        selectedPoints,
+        activeSkinPress.pointOffset
+      );
+
+      for (let i = 0; i < count; i++) {
+        const sourceIndex = selectedPoints[i].pointIndex * 3;
+        const targetIndex = i * 3;
+        highlightPositions.array[targetIndex] = candidateValues[sourceIndex];
+        highlightPositions.array[targetIndex + 1] = candidateValues[sourceIndex + 1];
+        highlightPositions.array[targetIndex + 2] = candidateValues[sourceIndex + 2];
+      }
+
+      highlightPositions.needsUpdate = true;
+      contactGeo.setDrawRange(0, count);
     }
 
     /* ---- URDF FK SKELETON (STL meshes) ---- */
@@ -716,7 +1055,7 @@
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/';
 
         // Fetch with download progress
-        const resp = await fetch('static/models/series_model_best_quant.onnx');
+        const resp = await fetch('static/models/new_figure_model_best_quant.onnx');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const contentLength = resp.headers.get('Content-Length');
         const total = contentLength ? parseInt(contentLength, 10) : 0;
@@ -769,10 +1108,14 @@
       busy = true;
       try {
         const out = await runONNX(jv);
+        restorePointCloudDent();
         // output order: body (0..575), right arm (576..1215), left arm (1216..1855) × 3 floats each
         setCloud(bodyGeo,  out.slice(0,                N_BODY*3));
         setCloud(rightGeo, out.slice(N_BODY*3,         (N_BODY+N_ARM)*3));
         setCloud(leftGeo,  out.slice((N_BODY+N_ARM)*3, (N_BODY+2*N_ARM)*3));
+        pointCloudReady = true;
+        sendSkinPointCloud();
+        updateContactHighlight();
       } finally { busy = false; }
     }
 
@@ -785,6 +1128,7 @@
         if (vl) vl.textContent = Math.round(jv[id] * 180 / Math.PI) + '°';
       });
       updateRobotJoints();
+      sendSkinJointState();
       update();
     }
 
@@ -836,6 +1180,7 @@
               jv[id]=parseFloat(this.value);
               if (vl) vl.textContent=Math.round(jv[id]*180/Math.PI)+'°';
               updateRobotJoints();
+              sendSkinJointState();
               update();
             });
           });
